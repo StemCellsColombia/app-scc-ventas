@@ -1,0 +1,253 @@
+/* APP SCC · API y avisos (9-oct-2026). Vive en el mismo proyecto Apps Script "Radar SCC" (cuenta info@).
+   - La app (GitHub Pages) llama doPost con {accion, idToken}: el idToken es de Firebase Auth (enlace al correo).
+     Aquí se verifica con Google y solo pasan los correos de EQUIPO_.
+   - GHL llama doPost?hook=<HOOK_CLAVE>&tipo=<tipo> desde la acción Webhook de cada workflow: se avisa al dueño del lead.
+   - Los avisos salen por Firebase Cloud Messaging (proyecto app-scc-ventas) con el token OAuth de info@ (dueño del proyecto).
+   - Cada 10 min (disparador avisosProgramados) se revisa el Radar: cotizaciones que pasan a "En riesgo" y leads sin primer mensaje.
+   Propiedades del script que usa: GHL_TOKEN (ya estaba), HOOK_CLAVE (la crea instalarApp), FCM_TOKENS y AVISADOS (las maneja el código). */
+
+var APP_ = {
+  PROYECTO: 'app-scc-ventas',
+  API_KEY: 'AIzaSyCmFFYhNoPDI2YSrafSf_yTWcRQDJlfPYY',          // clave web pública de Firebase (no es secreta)
+  URL: 'https://stemcellscolombia.github.io/app-scc-ventas/'
+};
+
+/* Quién puede entrar. 'ghl' = cómo empieza su nombre en GHL (para saber cuáles leads son suyos). */
+var EQUIPO_ = {
+  'contact@stemcellscolombia.com': { nombre: 'Alejo', ghl: ['alejo', 'alejandro'], admin: true },
+  'hello@stemcellscolombia.com': { nombre: 'Camilo', ghl: ['camilo'], admin: false },
+  'mia@stemcellscolombia.com': { nombre: 'Mia', ghl: ['mia'], admin: true }
+};
+
+function json_(o) { return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON); }
+
+function doPost(e) {
+  try {
+    var p = (e && e.parameter) || {}, body = {};
+    try { body = JSON.parse((e.postData && e.postData.contents) || '{}'); } catch (x) { body = {}; }
+    if (p.hook) return json_(webhook_(p, body));
+    return json_(api_(body));
+  } catch (err) {
+    return json_({ ok: false, error: String(err.message || err) });
+  }
+}
+
+/* ------------------------------------------------------------------ identidad */
+function quien_(idToken) {
+  if (!idToken) throw new Error('Sin sesión');
+  var c = CacheService.getScriptCache(), k = 'id_' + Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, idToken)).slice(0, 40);
+  var correo = c.get(k);
+  if (!correo) {
+    var r = UrlFetchApp.fetch('https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=' + APP_.API_KEY, {
+      method: 'post', contentType: 'application/json', payload: JSON.stringify({ idToken: idToken }), muteHttpExceptions: true });
+    var u = r.getResponseCode() === 200 && (JSON.parse(r.getContentText()).users || [])[0];
+    if (!u || !u.email) throw new Error('Sesión vencida: vuelve a entrar');
+    correo = String(u.email).toLowerCase();
+    c.put(k, correo, 3000);
+  }
+  var m = EQUIPO_[correo];
+  if (!m) throw new Error('Este correo no tiene acceso a la app');
+  return { correo: correo, nombre: m.nombre, admin: m.admin, ghl: m.ghl };
+}
+
+/* Nombre con el que aparece en GHL (el Radar agrupa por el primer nombre del usuario de GHL). */
+function nombreGhl_(yo, usuarios) {
+  var ids = Object.keys(usuarios || {});
+  for (var i = 0; i < ids.length; i++) {
+    var n = norm(usuarios[ids[i]]);
+    for (var j = 0; j < yo.ghl.length; j++) if (n.indexOf(yo.ghl[j]) === 0) return usuarios[ids[i]];
+  }
+  return '';
+}
+
+/* ------------------------------------------------------------------ API de la app */
+function api_(b) {
+  var yo = quien_(b.idToken);
+  var R;
+  switch (b.accion) {
+    case 'radar':
+      R = radarPara_(yo, !!b.forzar);
+      return { ok: true, yo: R.yo, radar: R };
+    case 'marcar':
+      if (!ACCIONES_OK_[String(b.que || '').replace('deshacer:', '')]) throw new Error('Acción no válida');
+      var lock = LockService.getScriptLock(); lock.waitLock(10000);
+      var ghl = '';
+      try { ghl = escribirGhl_(b.opp, b.contactId, b.que, yo.nombre); } catch (e) { ghl = 'error: ' + e.message; }
+      try { hoja_().appendRow([new Date(), yo.nombre, b.opp, b.contactId, b.que, b.nombre || '', ghl]); } finally { lock.releaseLock(); }
+      R = radarPara_(yo, false);
+      return { ok: true, yo: R.yo, radar: R };
+    case 'token':
+      guardarToken_(yo.correo, String(b.token || ''), String(b.equipo || ''));
+      return { ok: true };
+    case 'probar':
+      var n = push_([yo.correo], 'Avisos activos', 'Así te va a sonar cuando un paciente necesite que lo llames.', APP_.URL, 'prueba');
+      return { ok: true, enviados: n };
+    default:
+      throw new Error('Acción desconocida');
+  }
+}
+
+function radarPara_(yo, forzar) {
+  var raw = foto_(forzar);
+  raw.registro = leerRegistro_();
+  raw.ahora = Date.now();
+  var R = armarRadar(raw);
+  R.yo = { nombre: yo.nombre, admin: yo.admin, ghl: nombreGhl_(yo, raw.usuarios) };
+  return R;
+}
+
+/* ------------------------------------------------------------------ tokens de avisos (uno por aparato) */
+function tokens_() {
+  try { return JSON.parse(PropertiesService.getScriptProperties().getProperty('FCM_TOKENS') || '{}'); } catch (e) { return {}; }
+}
+function guardarToken_(correo, token, equipo) {
+  if (!token || token.length < 20) throw new Error('Token no válido');
+  var lock = LockService.getScriptLock(); lock.waitLock(10000);
+  try {
+    var t = tokens_();
+    Object.keys(t).forEach(function (c) { t[c] = (t[c] || []).filter(function (x) { return x.t !== token; }); });
+    (t[correo] = t[correo] || []).push({ t: token, equipo: equipo.slice(0, 60), desde: Date.now() });
+    t[correo] = t[correo].slice(-6);                                   // máximo 6 aparatos por persona
+    PropertiesService.getScriptProperties().setProperty('FCM_TOKENS', JSON.stringify(t));
+  } finally { lock.releaseLock(); }
+}
+
+/* Manda un aviso a esos correos (todos sus aparatos). Devuelve cuántos salieron. */
+function push_(correos, titulo, cuerpo, link, tag) {
+  var t = tokens_(), malos = [], n = 0;
+  var oauth = ScriptApp.getOAuthToken();
+  correos.forEach(function (c) {
+    (t[c] || []).forEach(function (x) {
+      var msg = { message: { token: x.t,
+        data: { titulo: titulo, cuerpo: cuerpo, link: link || APP_.URL, tag: tag || 'scc' },
+        webpush: { headers: { Urgency: 'high', TTL: '86400' },
+                   notification: { title: titulo, body: cuerpo, icon: APP_.URL + 'icono-192.png', badge: APP_.URL + 'insignia-96.png',
+                                   tag: tag || 'scc', renotify: true, requireInteraction: true },
+                   fcm_options: { link: link || APP_.URL } } } };
+      var r = UrlFetchApp.fetch('https://fcm.googleapis.com/v1/projects/' + APP_.PROYECTO + '/messages:send', {
+        method: 'post', contentType: 'application/json', muteHttpExceptions: true, payload: JSON.stringify(msg),
+        headers: { Authorization: 'Bearer ' + oauth, 'x-goog-user-project': APP_.PROYECTO } });
+      var code = r.getResponseCode();
+      if (code === 200) n++;
+      else if (code === 404 || /UNREGISTERED|INVALID_ARGUMENT/.test(r.getContentText())) malos.push(x.t);
+      else console.warn('FCM ' + code + ': ' + r.getContentText().slice(0, 300));
+    });
+  });
+  if (malos.length) {
+    Object.keys(t).forEach(function (c) { t[c] = (t[c] || []).filter(function (x) { return malos.indexOf(x.t) < 0; }); });
+    PropertiesService.getScriptProperties().setProperty('FCM_TOKENS', JSON.stringify(t));
+  }
+  return n;
+}
+
+/* ------------------------------------------------------------------ avisos desde GHL (acción Webhook de los workflows) */
+var AVISO_ = {
+  nuevo:      ['Lead nuevo', 'Escríbele hoy desde el celular'],
+  contesto:   ['Te contestó', 'Atiéndelo hoy'],
+  cotizacion: ['Cotización enviada', 'Llámalo antes de 24 horas'],
+  abrio:      ['Está mirando la cotización', 'Llámalo ya'],
+  revision:   ['Pidió revisión de su caso', 'Llámalo ya y pídele la resonancia'],
+  interes:    ['Le interesa', 'Tocó «Quiero saber más»: llámalo ya'],
+  apartar:    ['Quiere confirmar esta semana', 'Llámalo ya y cierra fecha'],
+  llamada:    ['Llamada perdida', 'Te llamó y nadie contestó: devuélvele la llamada']
+};
+
+function webhook_(p, b) {
+  var clave = PropertiesService.getScriptProperties().getProperty('HOOK_CLAVE');
+  if (!clave || p.hook !== clave) return { ok: false, error: 'clave' };
+  var cd = b.customData || b.custom_data || {};
+  var tipo = String(p.tipo || cd.tipo || b.tipo || '').toLowerCase();
+  var a = AVISO_[tipo];
+  if (!a) return { ok: false, error: 'tipo' };
+  var contactId = b.contact_id || b.contactId || (b.contact && b.contact.id) || '';
+  var nombre = b.full_name || [b.first_name, b.last_name].filter(String).join(' ') || (b.contact && b.contact.name) || 'Paciente';
+  var duenoId = b.assigned_to || b.assignedTo || (b.contact && b.contact.assignedTo) || '';
+  if (!duenoId && contactId) {
+    try {
+      var r = UrlFetchApp.fetch(CONFIG.BASE + '/contacts/' + contactId, { muteHttpExceptions: true,
+        headers: { Authorization: 'Bearer ' + token_(), Version: CONFIG.VERSION, Accept: 'application/json' } });
+      if (r.getResponseCode() === 200) duenoId = (JSON.parse(r.getContentText()).contact || {}).assignedTo || '';
+    } catch (e) {}
+  }
+  var dest = correosDeDueno_(duenoId);
+  var link = APP_.URL + (contactId ? '#c-' + contactId : '');
+  var n = push_(dest, a[0] + ' · ' + nombre, a[1], link, tipo + '-' + contactId);
+  return { ok: true, enviados: n, a: dest.length };
+}
+
+/* Dueño de GHL → correos de la app. Sin dueño (o dueño que no está en la app) → a los admins. */
+function correosDeDueno_(duenoId) {
+  var raw = leerCache_() || {}, nom = norm((raw.usuarios || {})[duenoId] || '');
+  var out = [];
+  if (nom) Object.keys(EQUIPO_).forEach(function (c) {
+    if (EQUIPO_[c].ghl.some(function (g) { return nom.indexOf(g) === 0; })) out.push(c);
+  });
+  if (!out.length) Object.keys(EQUIPO_).forEach(function (c) { if (EQUIPO_[c].admin) out.push(c); });
+  return out;
+}
+
+/* ------------------------------------------------------------------ avisos programados (cada 10 min, después de refrescar) */
+function avisosProgramados() {
+  var raw;
+  try { raw = refrescar(); } catch (e) { raw = leerCache_(); if (!raw) throw e; }
+  raw.registro = leerRegistro_();
+  raw.ahora = Date.now();
+  var R = armarRadar(raw), props = PropertiesService.getScriptProperties();
+  var av = {}; try { av = JSON.parse(props.getProperty('AVISADOS') || '{}'); } catch (e) { av = {}; }
+  var limite = Date.now() - 20 * 86400000;
+  Object.keys(av).forEach(function (k) { if (av[k] < limite) delete av[k]; });
+  var hora = Number(Utilities.formatDate(new Date(), 'America/Bogota', 'H'));
+  var horario = hora >= 7 && hora < 21;                                // de noche no suena nada
+  var reglas = { riesgo: ['En riesgo', 'Pasaron 24 h y nadie lo ha llamado'], entrada: ['Sin primer mensaje', 'Lleva más de 2 horas sin que le escribamos'] };
+  R.secciones.forEach(function (s) {
+    if (!reglas[s.clave] || !horario) return;
+    s.items.forEach(function (x) {
+      var k = s.clave + ':' + x.opp;
+      if (av[k]) return;
+      av[k] = Date.now();
+      push_(correosDeNombre_(x.dueno), reglas[s.clave][0] + ' · ' + x.nombre, reglas[s.clave][1], APP_.URL + '#c-' + x.contactId, k);
+    });
+  });
+  // resumen de las 8 am
+  var hoy = Utilities.formatDate(new Date(), 'America/Bogota', 'yyyy-MM-dd');
+  if (hora === 8 && props.getProperty('RESUMEN') !== hoy) {
+    props.setProperty('RESUMEN', hoy);
+    Object.keys(EQUIPO_).forEach(function (c) {
+      var m = EQUIPO_[c], cuenta = function (s) { return s.items.filter(function (x) { return m.ghl.some(function (g) { return norm(x.dueno).indexOf(g) === 0; }); }).length; };
+      var l = R.secciones.map(function (s) { return [s.titulo, cuenta(s)]; }).filter(function (z) { return z[1]; });
+      push_([c], 'Buenos días, ' + m.nombre, l.length ? l.map(function (z) { return z[1] + ' ' + z[0].toLowerCase(); }).join(' · ') : 'Hoy no tienes pendientes. A vender.', APP_.URL, 'resumen');
+    });
+  }
+  props.setProperty('AVISADOS', JSON.stringify(av));
+}
+
+function correosDeNombre_(nombreGhl) {
+  var n = norm(nombreGhl), out = [];
+  Object.keys(EQUIPO_).forEach(function (c) { if (EQUIPO_[c].ghl.some(function (g) { return n.indexOf(g) === 0; })) out.push(c); });
+  if (!out.length) Object.keys(EQUIPO_).forEach(function (c) { if (EQUIPO_[c].admin) out.push(c); });
+  return out;
+}
+
+/* ------------------------------------------------------------------ instalación (correr una vez desde el editor) */
+function instalarApp() {
+  var p = PropertiesService.getScriptProperties();
+  if (!p.getProperty('HOOK_CLAVE')) p.setProperty('HOOK_CLAVE', Utilities.getUuid().replace(/-/g, ''));
+  ScriptApp.getProjectTriggers().forEach(function (t) {
+    var f = t.getHandlerFunction();
+    if (f === 'refrescar' || f === 'avisosProgramados') ScriptApp.deleteTrigger(t);
+  });
+  ScriptApp.newTrigger('avisosProgramados').timeBased().everyMinutes(10).create();   // refresca GHL y avisa
+  hoja_();
+  // la primera pasada solo marca como avisado lo que ya estaba (para no sonar 30 veces de golpe)
+  var raw = refrescar(); raw.registro = leerRegistro_(); raw.ahora = Date.now();
+  var R = armarRadar(raw), av = {};
+  R.secciones.forEach(function (s) { s.items.forEach(function (x) { av[s.clave + ':' + x.opp] = Date.now(); }); });
+  p.setProperty('AVISADOS', JSON.stringify(av));
+  Logger.log('OK · usuarios GHL: ' + Object.keys(raw.usuarios).map(function (k) { return raw.usuarios[k]; }).join(', '));
+  Logger.log('Clave de webhooks lista (no se muestra). ' + R.secciones.map(function (s) { return s.titulo + ': ' + s.items.length; }).join(' · '));
+}
+
+/* Prueba de avisos desde el editor: manda uno a todos los aparatos registrados. */
+function probarAvisos() {
+  Logger.log('Enviados: ' + push_(Object.keys(EQUIPO_), 'Prueba App SCC', 'Si ves esto, los avisos funcionan.', APP_.URL, 'prueba'));
+}
