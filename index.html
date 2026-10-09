@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>App SCC</title>
+<meta name="theme-color" content="#0F2A47">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="App SCC">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icono-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@600;700&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+/* App de una columna: cabecera navy fija, pestañas abajo (pulgar), tarjetas por paciente con acciones grandes */
+:root{
+  --navy:#0F2A47; --navy-2:#173A60; --aqua:#22B5D8; --aqua-2:#0B8FB0;
+  --bg:#F2F6F9; --card:#FFFFFF; --ink:#10233B; --muted:#5B6D82; --line:#DCE5EC; --sunk:#E8EFF4;
+  --call:#D4502A; --call-soft:#FCEAE3; --ok:#1C7F47; --ok-soft:#E2F3E8; --warn:#A06A12; --warn-soft:#FBF0DB;
+  --f-d:"Familjen Grotesk","Segoe UI",system-ui,sans-serif; --f-b:"Atkinson Hyperlegible","Segoe UI",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root{
+  --bg:#0A1522; --card:#122236; --ink:#E7EEF6; --muted:#9DB0C4; --line:#22364D; --sunk:#0E1C2C;
+  --call:#FF8B64; --call-soft:#3A1E15; --ok:#52C483; --ok-soft:#10301F; --warn:#E9B55E; --warn-soft:#33270F; color-scheme:dark}}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-b);font-size:16px;line-height:1.5;-webkit-tap-highlight-color:transparent}
+button{font:inherit;cursor:pointer}
+a{color:inherit}
+[hidden]{display:none!important}
+h1,h2,h3{font-family:var(--f-d);margin:0;line-height:1.2}
+/* login */
+.login{min-height:100%;display:grid;place-items:center;background:var(--navy);color:#fff;padding:24px 20px calc(24px + env(safe-area-inset-bottom))}
+.login-in{width:100%;max-width:380px;display:grid;gap:18px}
+.login img{width:84px;height:84px;border-radius:20px}
+.login h1{font-size:30px}
+.login p{margin:0;color:#C9D7E6}
+.login label{font-size:14px;color:#C9D7E6}
+.login input{width:100%;font:inherit;font-size:17px;padding:14px;border-radius:12px;border:1px solid #2E4C70;background:#0B2039;color:#fff}
+.btn{border:0;border-radius:12px;padding:14px 18px;font-weight:700;font-size:17px}
+.btn-aqua{background:var(--aqua);color:#06263A}
+.btn-line{background:transparent;border:1px solid currentColor;color:inherit}
+.err{background:#4A1D16;color:#FFD7CB;border-radius:10px;padding:10px 12px;font-size:15px}
+.okmsg{background:#123B2A;color:#C9F2DA;border-radius:10px;padding:10px 12px;font-size:15px}
+/* app */
+.top{position:sticky;top:0;z-index:10;background:var(--navy);color:#fff;padding:calc(10px + env(safe-area-inset-top)) 16px 12px}
+.top-in{max-width:760px;margin:0 auto;display:grid;gap:10px}
+.row{display:flex;align-items:center;gap:10px;justify-content:space-between}
+.hola{font-family:var(--f-d);font-size:22px;font-weight:700}
+.sub{font-size:13px;color:#B9CADB}
+.ref{background:#173A60;color:#fff;border:0;border-radius:99px;padding:6px 12px;font-size:14px}
+.seg{display:flex;background:#0B2039;border-radius:99px;padding:3px;gap:2px;width:max-content}
+.seg button{border:0;background:transparent;color:#B9CADB;border-radius:99px;padding:5px 14px;font-size:14px}
+.seg button[aria-pressed="true"]{background:#fff;color:var(--navy);font-weight:700}
+.counts{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+.counts::-webkit-scrollbar{display:none}
+.cnt{flex:none;border:0;border-radius:12px;padding:6px 12px;background:#173A60;color:#fff;text-align:left;font-size:13px;min-width:92px}
+.cnt b{display:block;font-family:var(--f-d);font-size:22px;line-height:1.1}
+.cnt.hot b{color:#FFB199}
+.cnt.zero{opacity:.55}
+main{max-width:760px;margin:0 auto;padding:14px 16px calc(96px + env(safe-area-inset-bottom));display:grid;gap:18px}
+.banner{background:var(--warn-soft);color:var(--ink);border-radius:14px;padding:12px 14px;display:grid;gap:8px}
+.banner .btn{background:var(--navy);color:#fff;padding:10px 14px;font-size:15px;width:max-content}
+.sec{display:grid;gap:10px}
+.sec-h{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.sec-h h2{font-size:20px}
+.sec-h span{font-size:13px;color:var(--muted)}
+.n{font-family:var(--f-d);font-weight:700;border-radius:99px;padding:0 9px;font-size:14px;background:var(--sunk)}
+.sec.riesgo .n,.sec.llamar .n{background:var(--call);color:#fff}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px 14px;display:grid;gap:8px;transition:transform .25s,opacity .25s}
+.card.sale{opacity:0;transform:translateX(40px)}
+.card.flash{outline:3px solid var(--aqua);outline-offset:2px}
+.sec.riesgo .card{border-left:5px solid var(--call)}
+.c-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.c-nom{font-family:var(--f-d);font-weight:700;font-size:18px;overflow-wrap:anywhere}
+.c-et{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.reloj{flex:none;font-size:13px;font-weight:700;border-radius:99px;padding:2px 10px;background:var(--warn-soft);color:var(--warn)}
+.reloj.v{background:var(--call-soft);color:var(--call)}
+.c-det{font-size:15px;color:var(--muted);overflow-wrap:anywhere}
+.c-due{font-size:13px;color:var(--muted)}
+.acts{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.acts a{display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;border:1px solid var(--line);border-radius:10px;padding:9px 6px;font-weight:700;font-size:14px;background:var(--sunk)}
+.marks{display:flex;gap:6px;flex-wrap:wrap}
+.mk{flex:1;min-width:130px;border:0;border-radius:10px;padding:11px 10px;font-weight:700;background:var(--ok-soft);color:var(--ok)}
+.mk:disabled{opacity:.5}
+.vacio{background:var(--card);border:1px dashed var(--line);border-radius:14px;padding:14px;color:var(--muted);font-size:15px}
+.done{display:flex;justify-content:space-between;gap:10px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.done small{display:block;color:var(--muted);font-size:13px}
+.undo{border:1px solid var(--line);background:transparent;color:var(--ink);border-radius:8px;padding:5px 10px;font-size:13px}
+table{border-collapse:collapse;width:100%;font-size:15px;font-variant-numeric:tabular-nums}
+th,td{padding:9px 8px;border-bottom:1px solid var(--line);text-align:right}
+th:first-child,td:first-child{text-align:left}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+tr.tot td{font-weight:700}
+.tw{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow-x:auto}
+.box{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;display:grid;gap:10px}
+.box .btn{background:var(--navy);color:#fff;font-size:15px;padding:11px 14px;width:max-content}
+.nav{position:fixed;left:0;right:0;bottom:0;z-index:10;background:var(--card);border-top:1px solid var(--line);padding:6px 8px calc(6px + env(safe-area-inset-bottom))}
+.nav-in{max-width:760px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+.nav button{border:0;background:transparent;color:var(--muted);border-radius:12px;padding:6px 4px;font-size:12px;display:grid;justify-items:center;gap:2px}
+.nav button svg{width:24px;height:24px}
+.nav button[aria-current="page"]{color:var(--navy);background:var(--sunk);font-weight:700}
+@media (prefers-color-scheme: dark){.nav button[aria-current="page"]{color:#fff}}
+.toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(20px);opacity:0;background:var(--navy);color:#fff;border-radius:12px;padding:10px 16px;font-size:15px;transition:all .25s;z-index:20;max-width:90vw}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.cargando{color:var(--muted);text-align:center;padding:30px 0}
+.btn:focus-visible,button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid var(--aqua);outline-offset:2px}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<!-- ENTRAR -->
+<section class="login" id="v-login" hidden>
+  <div class="login-in">
+    <img src="icono-192.png" alt="">
+    <h1>App SCC</h1>
+    <p>Tu lista del día y los avisos de ventas.</p>
+    <form id="f-correo" class="login-in" style="gap:10px">
+      <label for="correo">Tu correo del trabajo</label>
+      <input id="correo" type="email" inputmode="email" autocomplete="email" placeholder="nombre@stemcellscolombia.com" required>
+      <button class="btn btn-aqua" type="submit">Enviarme el enlace para entrar</button>
+    </form>
+    <div id="l-enviado" class="login-in" style="gap:10px" hidden>
+      <p class="okmsg" id="l-enviado-t"></p>
+      <p>Abre el correo y toca <b>«Entrar a App SCC»</b>. Los de contact@ y hello@ llegan a la bandeja de info@.</p>
+      <p style="font-size:14px">¿Tienes la app instalada en iPhone? Copia el enlace del correo y pégalo aquí:</p>
+      <input id="pegado" type="url" placeholder="Pega aquí el enlace del correo">
+      <button class="btn btn-aqua" id="b-pegado" type="button">Entrar con el enlace</button>
+      <button class="btn btn-line" id="b-otro" type="button">Usar otro correo</button>
+    </div>
+    <p class="err" id="l-err" hidden></p>
+  </div>
+</section>
+
+<!-- APP -->
+<div id="v-app" hidden>
+  <header class="top">
+    <div class="top-in">
+      <div class="row">
+        <div><div class="hola" id="hola">Hola</div><div class="sub" id="act">Cargando…</div></div>
+        <button class="ref" id="b-ref" type="button" aria-label="Actualizar">↻ Actualizar</button>
+      </div>
+      <div class="row" style="justify-content:flex-start">
+        <div class="seg" role="group" aria-label="Qué leads ver">
+          <button type="button" id="s-yo" aria-pressed="true">Los míos</button><button type="button" id="s-todos" aria-pressed="false">Todos</button>
+        </div>
+      </div>
+      <div class="counts" id="counts"></div>
+    </div>
+  </header>
+  <main id="main"><p class="cargando">Cargando tu día…</p></main>
+  <nav class="nav" aria-label="Secciones">
+    <div class="nav-in">
+      <button type="button" data-tab="dia" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/></svg>Mi día</button>
+      <button type="button" data-tab="hecho"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>Hecho hoy</button>
+      <button type="button" data-tab="marcador"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Marcador</button>
+      <button type="button" data-tab="ajustes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>Avisos</button>
+    </div>
+  </nav>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
+<script>
+(function () {
+'use strict';
+var API = 'PEGAR_URL_DEL_SCRIPT';   // URL /exec del proyecto Apps Script "Radar SCC"
+var VAPID = 'BBOMakhSBKys6kkYIUR2qeTRvKl_LLgvHzybmn_CKDHBcZ3RW8X168fl3JXK9lGA7T0YJWWLjVc6VcpUV-nKzU8';
+var PERMITIDOS = ['contact@stemcellscolombia.com', 'hello@stemcellscolombia.com', 'mia@stemcellscolombia.com'];
+firebase.initializeApp({
+  apiKey: 'AIzaSyCmFFYhNoPDI2YSrafSf_yTWcRQDJlfPYY', authDomain: 'app-scc-ventas.firebaseapp.com', projectId: 'app-scc-ventas',
+  storageBucket: 'app-scc-ventas.firebasestorage.app', messagingSenderId: '513850572751', appId: '1:513850572751:web:f182d9fabe85355cafdcba'
+});
+var auth = firebase.auth();
+auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+
+var $ = function (s) { return document.querySelector(s); };
+function ls(k, v) { try { if (v === undefined) return localStorage.getItem(k); if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { return null; } }
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+function toast(t) { var a = $('#toast'); a.textContent = t; a.classList.add('on'); clearTimeout(a._t); a._t = setTimeout(function () { a.classList.remove('on'); }, 2800); }
+function hora(ms) { return new Date(ms).toLocaleTimeString('es-CO', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Bogota' }); }
+var esIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+var instalada = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+
+/* ------------------------------------------------ entrar con enlace al correo */
+function errLogin(t) { var e = $('#l-err'); e.textContent = t; e.hidden = !t; }
+function mostrarEnviado(c) { $('#f-correo').hidden = true; $('#l-enviado').hidden = false; $('#l-enviado-t').textContent = 'Listo: te mandamos el enlace a ' + c + '.'; }
+$('#f-correo').addEventListener('submit', function (ev) {
+  ev.preventDefault(); errLogin('');
+  var c = $('#correo').value.trim().toLowerCase();
+  if (PERMITIDOS.indexOf(c) < 0) { errLogin('Ese correo no tiene acceso. Usa contact@, hello@ o mia@stemcellscolombia.com.'); return; }
+  var b = ev.submitter || $('#f-correo button'); b.disabled = true; b.textContent = 'Enviando…';
+  auth.sendSignInLinkToEmail(c, { url: location.origin + location.pathname, handleCodeInApp: true }).then(function () {
+    ls('scc_correo', c); mostrarEnviado(c);
+  }).catch(function (e) { errLogin('No se pudo enviar el enlace: ' + (e.message || e)); }).finally(function () { b.disabled = false; b.textContent = 'Enviarme el enlace para entrar'; });
+});
+$('#b-otro').onclick = function () { ls('scc_correo', null); $('#f-correo').hidden = false; $('#l-enviado').hidden = true; };
+function entrarCon(link) {
+  var c = ls('scc_correo');
+  if (!c) { c = (window.prompt ? window.prompt('¿Con qué correo pediste el enlace?') : '') || ''; c = c.trim().toLowerCase(); }
+  if (!c) { errLogin('Escribe tu correo y pide el enlace otra vez.'); return Promise.resolve(); }
+  return auth.signInWithEmailLink(c, link).then(function () {
+    ls('scc_correo', c);
+    if (location.search) history.replaceState(null, '', location.pathname + location.hash);
+  }).catch(function (e) { errLogin('El enlace no sirvió (puede haber vencido): pide uno nuevo. ' + (e.code || '')); });
+}
+$('#b-pegado').onclick = function () {
+  var l = $('#pegado').value.trim();
+  if (!auth.isSignInWithEmailLink(l)) { errLogin('Ese no parece el enlace del correo. Cópialo completo.'); return; }
+  entrarCon(l);
+};
+if (auth.isSignInWithEmailLink(location.href)) entrarCon(location.href);
+
+/* ------------------------------------------------ API (Apps Script) */
+function api(accion, datos) {
+  var u = auth.currentUser;
+  if (!u) return Promise.reject(new Error('Sin sesión'));
+  return u.getIdToken().then(function (tk) {
+    var body = Object.assign({ accion: accion, idToken: tk }, datos || {});
+    return fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body) });
+  }).then(function (r) { return r.json(); }).then(function (j) {
+    if (!j.ok) throw new Error(j.error || 'Error');
+    return j;
+  });
+}
+
+/* ------------------------------------------------ estado y pintura */
+var R = null, YO = null, VER = ls('scc_ver') || 'yo', TAB = 'dia', ocupado = false, FOCO = (location.hash || '').replace('#c-', '');
+var ICON = {
+  tel: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></svg>',
+  wa: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.4 8.4 0 0 1-12.5 7.3L3 20l1.3-5.3A8.4 8.4 0 1 1 21 11.5z"/></svg>',
+  ghl: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/></svg>'
+};
+function mios(items) {
+  if (VER === 'todos' || !R || !R.yo || !R.yo.ghl) return items;
+  return items.filter(function (x) { return x.dueno === R.yo.ghl; });
+}
+function cargar(forzar) {
+  if (ocupado) return; ocupado = true;
+  $('#act').textContent = 'Actualizando…';
+  api('radar', { forzar: !!forzar }).then(function (j) { R = j.radar; YO = j.yo; pintar(); })
+    .catch(function (e) { $('#act').textContent = 'No se pudo actualizar'; toast(e.message); if (/vencida|acceso/i.test(e.message)) salir(); })
+    .finally(function () { ocupado = false; });
+}
+function pintar() {
+  if (!R) return;
+  $('#hola').textContent = 'Hola, ' + (YO ? YO.nombre : '');
+  $('#act').textContent = 'GHL leído a las ' + hora(R.generado);
+  $('#s-yo').setAttribute('aria-pressed', VER === 'yo'); $('#s-todos').setAttribute('aria-pressed', VER === 'todos');
+  $('#counts').innerHTML = R.secciones.map(function (s) {
+    var n = mios(s.items).length;
+    return '<button type="button" class="cnt ' + (n ? (s.clave === 'riesgo' || s.clave === 'llamar' ? 'hot' : '') : 'zero') + '" data-ir="' + s.clave + '"><b>' + n + '</b>' + esc(s.titulo) + '</button>';
+  }).join('');
+  var h = '';
+  if (TAB === 'dia') h = dia(); else if (TAB === 'hecho') h = hecho(); else if (TAB === 'marcador') h = marcador(); else h = ajustes();
+  $('#main').innerHTML = avisoBanner() + h;
+  if (FOCO) { var el = document.getElementById('c-' + FOCO); if (el) { el.scrollIntoView({ block: 'center' }); el.classList.add('flash'); setTimeout(function () { el.classList.remove('flash'); }, 2500); } FOCO = ''; }
+}
+function avisoBanner() {
+  if (TAB === 'ajustes') return '';
+  var p = ('Notification' in window) ? Notification.permission : 'no';
+  if (p === 'granted' && ls('scc_token_ok')) return '';
+  if (esIOS && !instalada) return '<div class="banner"><b>Instala la app para que te suene.</b><span>En Safari toca Compartir (el cuadro con la flecha) → «Agregar a inicio». Luego ábrela desde el ícono.</span></div>';
+  if (p === 'denied') return '<div class="banner"><b>Los avisos están bloqueados.</b><span>Actívalos en los ajustes del navegador para esta app.</span></div>';
+  if (p === 'no') return '';
+  return '<div class="banner"><b>Activa los avisos para que te suene cuando un paciente necesite que lo llames.</b><button class="btn" type="button" data-avisos>Activar avisos</button></div>';
+}
+function dia() {
+  var h = '';
+  R.secciones.forEach(function (s) {
+    var it = mios(s.items);
+    h += '<section class="sec ' + s.clave + '" id="s-' + s.clave + '"><div class="sec-h"><h2>' + esc(s.titulo) + '</h2><span class="n">' + it.length + '</span><span>' + esc(s.sub) + '</span></div>';
+    h += it.length ? it.map(tarjeta).join('') : '<div class="vacio">' + (s.clave === 'riesgo' ? 'En cero. Así se mantiene.' : 'Nada por aquí.') + '</div>';
+    h += '</section>';
+  });
+  if (R.viejas) h += '<p class="c-due">' + R.viejas + ' cotizaciones de más de 14 días sin llamada: van a Nutrir.</p>';
+  return h;
+}
+function tarjeta(x) {
+  var tel = String(x.tel || '').replace(/[^\d+]/g, '');
+  var marks = x.acciones.map(function (a) { return '<button type="button" class="mk" data-m="' + a + '" data-o="' + esc(x.opp) + '" data-c="' + esc(x.contactId) + '" data-n="' + esc(x.nombre) + '">✓ ' + esc(R.acciones[a]) + '</button>'; }).join('');
+  return '<article class="card" id="c-' + esc(x.contactId) + '">' +
+    '<div class="c-top"><div><div class="c-nom">' + esc(x.nombre) + '</div><div class="c-et">' + esc(x.etapa) + '</div></div>' +
+    (x.reloj ? '<span class="reloj ' + (/vencida/.test(x.reloj) ? 'v' : '') + '">' + esc(x.reloj) + '</span>' : '') + '</div>' +
+    '<div class="c-det">' + esc(x.detalle) + '</div>' +
+    (VER === 'todos' ? '<div class="c-due">Dueño: ' + esc(x.dueno) + '</div>' : '') +
+    '<div class="acts">' + (tel ? '<a href="tel:' + esc(tel) + '">' + ICON.tel + 'Llamar</a>' : '<a aria-disabled="true">Sin teléfono</a>') +
+    (x.wa ? '<a href="' + esc(x.wa) + '" target="_blank" rel="noopener">' + ICON.wa + 'WhatsApp</a>' : '<a aria-disabled="true">—</a>') +
+    '<a href="' + esc(x.ghl) + '" target="_blank" rel="noopener">' + ICON.ghl + 'GHL</a></div>' +
+    '<div class="marks">' + marks + '</div></article>';
+}
+function hecho() {
+  var l = R.hechos.filter(function (x) { return VER === 'todos' || !R.yo.ghl || x.quien === YO.nombre || x.dueno === R.yo.ghl; });
+  if (!l.length) return '<section class="sec"><div class="sec-h"><h2>Hecho hoy</h2></div><div class="vacio">Todavía nada hoy.</div></section>';
+  return '<section class="sec"><div class="sec-h"><h2>Hecho hoy</h2><span class="n">' + l.length + '</span></div>' + l.map(function (x) {
+    return '<div class="done"><div><b>' + esc(x.nombre) + '</b><small>' + esc(x.que) + ' · ' + esc(x.quien) + ' · ' + hora(x.cuando) + '</small></div>' +
+      (x.accion ? '<button type="button" class="undo" data-m="deshacer:' + x.accion + '" data-o="' + esc(x.opp) + '" data-c="' + esc(x.contactId) + '" data-n="' + esc(x.nombre) + '">Deshacer</button>' : '') + '</div>';
+  }).join('') + '</section>';
+}
+function marcador() {
+  var f = R.marcador.filas.concat([R.marcador.total]);
+  function pct(x) { return x.cotizaciones ? Math.round(100 * x.llamadas24 / x.cotizaciones) + '%' : '—'; }
+  return '<section class="sec"><div class="sec-h"><h2>Marcador de la semana</h2><span>De lunes a hoy</span></div><div class="tw"><table><tr><th>Quién</th><th>Leads</th><th>Cotiz.</th><th>Llamada 24 h</th><th>Ventas</th><th>✓</th></tr>' +
+    f.map(function (x, k) { return '<tr class="' + (k === f.length - 1 ? 'tot' : '') + '"><td>' + esc(x.dueno) + '</td><td>' + x.leads + '</td><td>' + x.cotizaciones + '</td><td>' + pct(x) + '</td><td>' + x.ventas + '</td><td>' + x.chulitos + '</td></tr>'; }).join('') +
+    '</table></div><p class="c-due">Meta: todas las cotizaciones con llamada en 24 h y «En riesgo» siempre en 0.</p></section>';
+}
+function ajustes() {
+  var p = ('Notification' in window) ? Notification.permission : 'no';
+  var estado = p === 'granted' && ls('scc_token_ok') ? 'Activos en este aparato.' : p === 'denied' ? 'Bloqueados en este aparato.' : 'Todavía no están activos.';
+  var inst = instalada ? 'La app está instalada.' : esIOS ? 'En iPhone: Safari → Compartir → «Agregar a inicio». Los avisos solo funcionan desde el ícono.' : 'En Android (Chrome): menú ⋮ → «Instalar app» o «Agregar a la pantalla principal». En el PC: el ícono de instalar en la barra de direcciones.';
+  return '<section class="sec"><div class="sec-h"><h2>Avisos</h2></div>' +
+    '<div class="box"><b>' + estado + '</b><span class="c-det">Te suena cuando: entra un lead tuyo, te contesta, abre la cotización, toca un botón, o una cotización pasa 24 h sin llamada. De 9 pm a 7 am no suena nada.</span>' +
+    '<button class="btn" type="button" data-avisos>' + (p === 'granted' ? 'Volver a activar' : 'Activar avisos') + '</button>' +
+    '<button class="btn" type="button" data-probar>Mandarme un aviso de prueba</button></div>' +
+    '<div class="box"><b>Instalar</b><span class="c-det">' + inst + '</span></div>' +
+    '<div class="box"><b>Sesión</b><span class="c-det">Entraste con ' + esc(auth.currentUser ? auth.currentUser.email : '') + '.</span><button class="btn" type="button" data-salir>Cerrar sesión</button></div></section>';
+}
+
+/* ------------------------------------------------ avisos (Firebase Cloud Messaging) */
+var swReg = null;
+function registrarSW() {
+  if (!('serviceWorker' in navigator)) return Promise.resolve(null);
+  return navigator.serviceWorker.register('firebase-messaging-sw.js').then(function (r) { swReg = r; return r; }).catch(function () { return null; });
+}
+function activarAvisos() {
+  if (!('Notification' in window) || !firebase.messaging.isSupported()) { toast(esIOS ? 'Primero instala la app (Agregar a inicio) y ábrela desde el ícono.' : 'Este navegador no permite avisos.'); return; }
+  Notification.requestPermission().then(function (p) {
+    if (p !== 'granted') { toast('Sin permiso no puede sonar.'); pintar(); return; }
+    return (swReg ? Promise.resolve(swReg) : registrarSW()).then(function (reg) {
+      return firebase.messaging().getToken({ vapidKey: VAPID, serviceWorkerRegistration: reg });
+    }).then(function (tk) {
+      if (!tk) throw new Error('Sin token');
+      var equipo = (esIOS ? 'iPhone' : /android/i.test(navigator.userAgent) ? 'Android' : 'PC') + (instalada ? ' (app)' : '');
+      return api('token', { token: tk, equipo: equipo });
+    }).then(function () { ls('scc_token_ok', '1'); toast('Avisos activos en este aparato'); pintar(); });
+  }).catch(function (e) { toast('No se pudo activar: ' + (e.message || e)); });
+}
+function escucharPrimerPlano() {
+  try {
+    if (!firebase.messaging.isSupported()) return;
+    firebase.messaging().onMessage(function (m) {
+      var d = m.data || {}, n = m.notification || {};
+      var t = n.title || d.titulo || 'App SCC', b = n.body || d.cuerpo || '';
+      if (swReg && Notification.permission === 'granted') swReg.showNotification(t, { body: b, icon: 'icono-192.png', badge: 'insignia-96.png', tag: d.tag || 'scc', renotify: true, data: { link: d.link } });
+      toast(t);
+      cargar(false);
+    });
+  } catch (e) {}
+}
+if (navigator.serviceWorker) navigator.serviceWorker.addEventListener('message', function (ev) {
+  if (ev.data && ev.data.tipo === 'abrir') { var h = (ev.data.link.split('#')[1] || ''); FOCO = h.replace('c-', ''); TAB = 'dia'; marcarTab(); cargar(true); }
+});
+
+/* ------------------------------------------------ clics */
+function marcarTab() { document.querySelectorAll('.nav button').forEach(function (b) { if (b.dataset.tab === TAB) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); }); }
+function salir() { auth.signOut(); ls('scc_token_ok', null); }
+document.addEventListener('click', function (e) {
+  var b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.tab) { TAB = b.dataset.tab; marcarTab(); pintar(); window.scrollTo(0, 0); return; }
+  if (b.dataset.ir) { TAB = 'dia'; marcarTab(); pintar(); var s = document.getElementById('s-' + b.dataset.ir); if (s) s.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+  if (b.id === 's-yo' || b.id === 's-todos') { VER = b.id === 's-yo' ? 'yo' : 'todos'; ls('scc_ver', VER); pintar(); return; }
+  if (b.id === 'b-ref') { cargar(true); return; }
+  if (b.hasAttribute('data-avisos')) { activarAvisos(); return; }
+  if (b.hasAttribute('data-probar')) { api('probar').then(function (j) { toast(j.enviados ? 'Aviso enviado: debería sonar ya' : 'No hay aparatos con avisos activos'); }).catch(function (e) { toast(e.message); }); return; }
+  if (b.hasAttribute('data-salir')) { salir(); return; }
+  if (b.dataset.m) {
+    var card = b.closest('.card'); b.disabled = true; if (card) card.classList.add('sale');
+    api('marcar', { que: b.dataset.m, opp: b.dataset.o, contactId: b.dataset.c, nombre: b.dataset.n }).then(function (j) {
+      R = j.radar; YO = j.yo; pintar(); toast(b.dataset.m.indexOf('deshacer:') === 0 ? 'Deshecho' : '✓ ' + b.dataset.n);
+    }).catch(function (er) { b.disabled = false; if (card) card.classList.remove('sale'); toast('No se guardó: ' + er.message); });
+  }
+});
+
+/* ------------------------------------------------ arranque */
+auth.onAuthStateChanged(function (u) {
+  var dentro = !!u && PERMITIDOS.indexOf(String(u.email || '').toLowerCase()) >= 0;
+  if (u && !dentro) { auth.signOut(); errLogin('Ese correo no tiene acceso.'); }
+  $('#v-login').hidden = dentro; $('#v-app').hidden = !dentro;
+  if (dentro) {
+    registrarSW().then(function () { escucharPrimerPlano(); if (('Notification' in window) && Notification.permission === 'granted' && !ls('scc_token_ok')) activarAvisos(); });
+    cargar(false);
+  } else if (ls('scc_correo') && !auth.isSignInWithEmailLink(location.href)) mostrarEnviado(ls('scc_correo'));
+});
+document.addEventListener('visibilitychange', function () { if (!document.hidden && auth.currentUser) cargar(false); });
+setInterval(function () { if (!document.hidden && auth.currentUser) cargar(false); }, 3 * 60000);
+})();
+</script>
+</body>
+</html>
