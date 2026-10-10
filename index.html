@@ -74,6 +74,8 @@ main{max-width:760px;margin:0 auto;padding:14px 16px calc(96px + env(safe-area-i
 .card.sale{opacity:0;transform:translateX(40px)}
 .card.flash{outline:3px solid var(--aqua);outline-offset:2px}
 .sec.riesgo .card{border-left:5px solid var(--call)}
+.sec.senales .card{border-left:5px solid var(--aqua)}
+.sec.senales .n{background:var(--aqua);color:#06263A}
 .c-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
 .c-nom{font-family:var(--f-d);font-weight:700;font-size:18px;overflow-wrap:anywhere}
 .c-et{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
@@ -155,7 +157,7 @@ tr.tot td{font-weight:700}
   <main id="main"><p class="cargando">Cargando tu día…</p></main>
   <nav class="nav" aria-label="Secciones">
     <div class="nav-in">
-      <button type="button" data-tab="dia" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/></svg>Mi día</button>
+      <button type="button" data-tab="dia" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/></svg>Ahora</button>
       <button type="button" data-tab="hecho"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>Hecho hoy</button>
       <button type="button" data-tab="marcador"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Marcador</button>
       <button type="button" data-tab="ajustes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>Avisos</button>
@@ -253,7 +255,8 @@ function pintar() {
   $('#hola').textContent = 'Hola, ' + (YO ? YO.nombre : '');
   $('#act').textContent = 'GHL leído a las ' + hora(R.generado);
   $('#s-yo').setAttribute('aria-pressed', VER === 'yo'); $('#s-todos').setAttribute('aria-pressed', VER === 'todos');
-  $('#counts').innerHTML = R.secciones.map(function (s) {
+  var nS = senales().length;
+  $('#counts').innerHTML = '<button type="button" class="cnt ' + (nS ? 'hot' : 'zero') + '" data-ir="senales"><b>' + nS + '</b>Ahora</button>' + R.secciones.slice().sort(function (a, b) { return ORDEN.indexOf(a.clave) - ORDEN.indexOf(b.clave); }).map(function (s) {
     var n = mios(s.items).length;
     return '<button type="button" class="cnt ' + (n ? (s.clave === 'riesgo' || s.clave === 'llamar' ? 'hot' : '') : 'zero') + '" data-ir="' + s.clave + '"><b>' + n + '</b>' + esc(s.titulo) + '</button>';
   }).join('');
@@ -271,9 +274,76 @@ function avisoBanner() {
   if (p === 'no') return '';
   return '<div class="banner"><b>Activa los avisos para que te suene cuando un paciente necesite que lo llames.</b><button class="btn" type="button" data-avisos>Activar avisos</button></div>';
 }
+/* ---- mensajes listos para WhatsApp (estilo Mia; inglés salvo etiqueta es) ---- */
+var LOC = 'jf925SMCru7ewfnZTKry';
+function primerNombre(n) { var p = String(n || '').trim().split(/\s+/)[0] || ''; return p ? p.charAt(0).toUpperCase() + p.slice(1).toLowerCase() : ''; }
+function texto(tipo, nombre, es) {
+  var n = primerNombre(nombre), yo = YO ? YO.nombre : '';
+  var T = {
+    nuevo: ['Hi ' + n + ', thanks for reaching out to Stem Cells Colombia. We specialize in joint and spine treatments with umbilical cord stem cells, with top-quality care at an affordable price. Would you be open to traveling to Medellín for your treatment? If so, just reply YES and we\'ll start with your case.',
+            'Hola ' + n + ', gracias por escribirle a Stem Cells Colombia. Somos especialistas en tratamientos de articulaciones y columna con células madre de cordón umbilical, con la mejor calidad a un precio accesible. ¿Podría viajar a Medellín para su tratamiento? Si es así, respóndame SÍ y empezamos con su caso.'],
+    abrio: ['Hi ' + n + ', this is ' + yo + ' from Stem Cells Colombia. I wanted to make sure your quotation arrived well. Do you have any questions? I\'m happy to go over it with you on a quick call.',
+            'Hola ' + n + ', le habla ' + yo + ' de Stem Cells Colombia. Quería confirmar que le llegó bien su cotización. ¿Tiene alguna pregunta? Con gusto la repasamos en una llamada corta.'],
+    interes: ['Hi ' + n + ', this is ' + yo + ' from Stem Cells Colombia. Thank you for your interest! When would be a good time for a quick call to go over your case?',
+              'Hola ' + n + ', le habla ' + yo + ' de Stem Cells Colombia. ¡Gracias por su interés! ¿A qué hora le queda bien una llamada corta para repasar su caso?'],
+    revision: ['Hi ' + n + ', this is ' + yo + ' from Stem Cells Colombia. Happy to review your case for free! If you have an MRI report, please send it here (PDF). When would be a good time for a quick call?',
+               'Hola ' + n + ', le habla ' + yo + ' de Stem Cells Colombia. ¡Con gusto revisamos su caso gratis! Si tiene el informe de su resonancia, envíelo por aquí (PDF). ¿A qué hora le queda bien una llamada corta?'],
+    apartar: ['Hi ' + n + ', this is ' + yo + ' from Stem Cells Colombia. Wonderful! To save your exosome session, I just need your dates and full name. When would you like to come?',
+              'Hola ' + n + ', le habla ' + yo + ' de Stem Cells Colombia. ¡Excelente! Para apartarle su sesión de exosomas solo necesito sus fechas y su nombre completo. ¿Cuándo le gustaría venir?'],
+    llamada: ['Hi ' + n + ', this is ' + yo + ' from Stem Cells Colombia. We saw your call and couldn\'t pick up at that moment. Is now a good time to talk, or would you prefer to continue here?',
+              'Hola ' + n + ', le habla ' + yo + ' de Stem Cells Colombia. Vimos su llamada y no pudimos contestar en ese momento. ¿Le queda bien que hablemos ahora, o prefiere seguir por aquí?'],
+    nocontesto: ['Hi ' + n + ', this is ' + yo + ' from Stem Cells Colombia. I tried calling but couldn\'t reach you. I\'d love to share how stem cells could help in your case. When would be a good time to talk?',
+                 'Hola ' + n + ', le habla ' + yo + ' de Stem Cells Colombia. Le llamé pero no pude comunicarme. Me encantaría contarle cómo las células madre podrían ayudarle en su caso. ¿A qué hora le queda bien que hablemos?'],
+    hot: ['Hi ' + n + ', this is ' + yo + ' from Stem Cells Colombia. Would you like a quick call to go over your case? Just tell me a day and time that works for you (and your time zone), and I\'ll call you.',
+          'Hola ' + n + ', le habla ' + yo + ' de Stem Cells Colombia. ¿Le gustaría una llamada corta para repasar su caso? Dígame un día y una hora que le queden bien (y su zona horaria), y le llamo.']
+  };
+  var t = T[tipo]; return t ? t[es ? 1 : 0] : '';
+}
+function waLink(tel, tipo, nombre, es) {
+  var d = String(tel || '').replace(/[^\d]/g, ''); if (!d) return '';
+  var t = texto(tipo, nombre, es);
+  return 'https://wa.me/' + d + (t ? '?text=' + encodeURIComponent(t) : '');
+}
+function reloj(ms, limiteMin) {
+  var m = Math.max(0, Math.round((Date.now() - ms) / 60000));
+  var t = m < 60 ? m + ' min' : m < 2880 ? Math.round(m / 60) + ' h' : Math.round(m / 1440) + ' d';
+  return '<span class="reloj ' + (m > limiteMin ? 'v' : '') + '">⏱ ' + t + '</span>';
+}
+var SENAL = {
+  apartar: ['Quiere confirmar esta semana', 'Llámalo ya y cierra fecha', 1],
+  revision: ['Pidió revisión de su caso', 'Llámalo y pídele la resonancia', 2],
+  interes: ['Tocó «Quiero saber más»', 'Llámalo ya', 3],
+  abrio: ['Está mirando la cotización', 'Llámalo ya', 4],
+  llamada: ['Llamada perdida', 'Devuélvele la llamada', 5],
+  contesto: ['Te contestó', 'Contéstale', 6],
+  nuevo: ['Lead nuevo', 'Escríbele el primer mensaje', 7]
+};
+function senales() {
+  var l = (R.eventos || []).filter(function (e) { return VER === 'todos' || !R.yo.ghl || !e.dn || e.dn === R.yo.ghl; });
+  l.sort(function (a, b) { return ((SENAL[a.tipo] || [0, 0, 9])[2] - (SENAL[b.tipo] || [0, 0, 9])[2]) || (a.at - b.at); });
+  return l;
+}
+function tarjetaSenal(e) {
+  var s = SENAL[e.tipo] || [e.tipo, '', 9];
+  var tel = String(e.t || '').replace(/[^\d+]/g, '');
+  var wa = waLink(e.t, e.tipo === 'contesto' ? '' : e.tipo, e.n, e.es);
+  return '<article class="card senal" id="c-' + esc(e.c) + '">' +
+    '<div class="c-top"><div><div class="c-nom">' + esc(e.n) + '</div><div class="c-et">' + esc(s[0]) + (e.cond ? ' · ' + esc(e.cond) : '') + (e.es ? ' · ES' : '') + '</div></div>' + reloj(e.at, 15) + '</div>' +
+    '<div class="c-det"><b>' + esc(s[1]) + '</b></div>' +
+    (VER === 'todos' && e.dn ? '<div class="c-due">Dueño: ' + esc(e.dn) + '</div>' : '') +
+    '<div class="acts">' + (tel ? '<a href="tel:' + esc(tel) + '">' + ICON.tel + 'Llamar</a>' : '<a aria-disabled="true">Sin teléfono</a>') +
+    (wa ? '<a href="' + esc(wa) + '" target="_blank" rel="noopener">' + ICON.wa + 'WhatsApp</a>' : '<a aria-disabled="true">—</a>') +
+    '<a href="https://app.gohighlevel.com/v2/location/' + LOC + '/contacts/detail/' + esc(e.c) + '" target="_blank" rel="noopener">' + ICON.ghl + 'GHL</a></div>' +
+    '<div class="marks"><button type="button" class="mk" data-ev="' + esc(e.id) + '" data-n="' + esc(e.n) + '">✓ Atendido</button></div></article>';
+}
+var ORDEN = ['riesgo', 'llamar', 'escribieron', 'entrada', 'hot'];
 function dia() {
   var h = '';
-  R.secciones.forEach(function (s) {
+  var sl = senales();
+  h += '<section class="sec senales" id="s-senales"><div class="sec-h"><h2>Ahora</h2><span class="n">' + sl.length + '</span><span>Señales de los pacientes, la más urgente arriba · meta: atender en menos de 15 min</span></div>';
+  h += sl.length ? sl.map(tarjetaSenal).join('') : '<div class="vacio">Nadie esperando. Cuando un paciente conteste, toque un botón o abra la cotización, aparece aquí y te suena.</div>';
+  h += '</section>';
+  R.secciones.slice().sort(function (a, b) { return ORDEN.indexOf(a.clave) - ORDEN.indexOf(b.clave); }).forEach(function (s) {
     var it = mios(s.items);
     h += '<section class="sec ' + s.clave + '" id="s-' + s.clave + '"><div class="sec-h"><h2>' + esc(s.titulo) + '</h2><span class="n">' + it.length + '</span><span>' + esc(s.sub) + '</span></div>';
     h += it.length ? it.map(tarjeta).join('') : '<div class="vacio">' + (s.clave === 'riesgo' ? 'En cero. Así se mantiene.' : 'Nada por aquí.') + '</div>';
@@ -284,6 +354,8 @@ function dia() {
 }
 function tarjeta(x) {
   var tel = String(x.tel || '').replace(/[^\d+]/g, '');
+  var tipoWa = x.acciones.indexOf('escribi') >= 0 ? 'nuevo' : x.acciones.indexOf('llame') >= 0 ? 'nocontesto' : x.acciones.indexOf('hable') >= 0 ? 'hot' : '';
+  var w = waLink(x.tel, tipoWa, x.nombre, x.es); if (w) x = Object.assign({}, x, { wa: w });
   var marks = x.acciones.map(function (a) { return '<button type="button" class="mk" data-m="' + a + '" data-o="' + esc(x.opp) + '" data-c="' + esc(x.contactId) + '" data-n="' + esc(x.nombre) + '">✓ ' + esc(R.acciones[a]) + '</button>'; }).join('');
   return '<article class="card" id="c-' + esc(x.contactId) + '">' +
     '<div class="c-top"><div><div class="c-nom">' + esc(x.nombre) + '</div><div class="c-et">' + esc(x.etapa) + '</div></div>' +
@@ -369,6 +441,12 @@ document.addEventListener('click', function (e) {
   if (b.hasAttribute('data-avisos')) { activarAvisos(); return; }
   if (b.hasAttribute('data-probar')) { api('probar').then(function (j) { toast(j.enviados ? 'Aviso enviado: debería sonar ya' : 'No hay aparatos con avisos activos'); }).catch(function (e) { toast(e.message); }); return; }
   if (b.hasAttribute('data-salir')) { salir(); return; }
+  if (b.dataset.ev) {
+    var cardE = b.closest('.card'); b.disabled = true; if (cardE) cardE.classList.add('sale');
+    api('atendido', { id: b.dataset.ev }).then(function (j) { R = j.radar; YO = j.yo; pintar(); toast('✓ ' + b.dataset.n); })
+      .catch(function (er) { b.disabled = false; if (cardE) cardE.classList.remove('sale'); toast('No se guardó: ' + er.message); });
+    return;
+  }
   if (b.dataset.m) {
     var card = b.closest('.card'); b.disabled = true; if (card) card.classList.add('sale');
     api('marcar', { que: b.dataset.m, opp: b.dataset.o, contactId: b.dataset.c, nombre: b.dataset.n }).then(function (j) {

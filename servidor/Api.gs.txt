@@ -82,6 +82,10 @@ function api_(b) {
     case 'probar':
       var n = push_([yo.correo], 'Avisos activos', 'Así te va a sonar cuando un paciente necesite que lo llames.', APP_.URL, 'prueba');
       return { ok: true, enviados: n };
+    case 'atendido':
+      marcarEvento_(String(b.id || ''), yo.nombre, !!b.deshacer);
+      R = radarPara_(yo, false);
+      return { ok: true, yo: R.yo, radar: R };
     default:
       throw new Error('Acción desconocida');
   }
@@ -93,7 +97,48 @@ function radarPara_(yo, forzar) {
   raw.ahora = Date.now();
   var R = armarRadar(raw);
   R.yo = { nombre: yo.nombre, admin: yo.admin, ghl: nombreGhl_(yo, raw.usuarios) };
+  // idioma y condición de cada tarjeta (de las etiquetas del contacto)
+  var porOpp = {};
+  (raw.opps || []).forEach(function (o) { porOpp[o.id] = o; });
+  R.secciones.forEach(function (s) {
+    s.items.forEach(function (x) {
+      var tags = ((porOpp[x.opp] || {}).tags || []).map(function (t) { return String(t).toLowerCase(); });
+      x.es = tags.indexOf('es') >= 0;
+      x.cond = condicionDe_(tags);
+    });
+  });
+  R.eventos = eventos_().filter(function (e) { return !e.d && Date.now() - e.at < 48 * 3600000; });
   return R;
+}
+
+var CONDICIONES_ = ['knee', 'hip', 'shoulder', 'back', 'neck', 'ankle', 'hands', 'joint', 'face', 'facial', 'hair', 'sex', 'iv', 'kidney', 'diabetes', 'autoimmune', 'neuro', 'neuropathy'];
+function condicionDe_(tags) {
+  for (var i = 0; i < tags.length; i++) if (CONDICIONES_.indexOf(tags[i]) >= 0) return tags[i];
+  return '';
+}
+
+/* ------------------------------------------------------------------ señales de GHL (la fila "Ahora" de la app) */
+function eventos_() {
+  try { return JSON.parse(PropertiesService.getScriptProperties().getProperty('EVENTOS') || '[]'); } catch (e) { return []; }
+}
+function guardarEvento_(ev) {
+  var lock = LockService.getScriptLock(); lock.waitLock(10000);
+  try {
+    var l = eventos_(), lim = Date.now() - 3 * 86400000;
+    // una señal nueva del mismo paciente reemplaza la anterior sin atender
+    l = l.filter(function (e) { return e.at > lim && !(e.c === ev.c && !e.d); });
+    l.push(ev);
+    while (JSON.stringify(l).length > 8500 && l.length) l.shift();   // límite de 9 KB por propiedad
+    PropertiesService.getScriptProperties().setProperty('EVENTOS', JSON.stringify(l));
+  } finally { lock.releaseLock(); }
+}
+function marcarEvento_(id, quien, deshacer) {
+  var lock = LockService.getScriptLock(); lock.waitLock(10000);
+  try {
+    var l = eventos_();
+    l.forEach(function (e) { if (e.id === id) { if (deshacer) { delete e.d; delete e.por; } else { e.d = Date.now(); e.por = quien; } } });
+    PropertiesService.getScriptProperties().setProperty('EVENTOS', JSON.stringify(l));
+  } finally { lock.releaseLock(); }
 }
 
 /* ------------------------------------------------------------------ tokens de avisos (uno por aparato) */
@@ -171,6 +216,13 @@ function webhook_(p, b) {
   }
   var dest = correosDeDueno_(duenoId);
   var link = APP_.URL + (contactId ? '#c-' + contactId : '');
+  var tags = b.tags || (b.contact && b.contact.tags) || [];
+  if (typeof tags === 'string') tags = tags.split(',');
+  tags = tags.map(function (t) { return String(t).trim().toLowerCase(); });
+  if (tipo !== 'cotizacion') {                                        // la cotización la mandó el dueño: no es señal del paciente
+    guardarEvento_({ id: Utilities.getUuid().slice(0, 8), c: contactId, n: nombre, t: String(b.phone || (b.contact && b.contact.phone) || ''),
+                     tipo: tipo, at: Date.now(), dn: ((leerCache_() || {}).usuarios || {})[duenoId] || '', es: tags.indexOf('es') >= 0, cond: condicionDe_(tags) });
+  }
   var n = push_(dest, a[0] + ' · ' + nombre, a[1], link, tipo + '-' + contactId);
   return { ok: true, enviados: n, a: dest.length };
 }
