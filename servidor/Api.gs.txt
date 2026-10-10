@@ -82,6 +82,9 @@ function api_(b) {
     case 'probar':
       var n = push_([yo.correo], 'Avisos activos', 'Así te va a sonar cuando un paciente necesite que lo llames.', APP_.URL, 'prueba');
       return { ok: true, enviados: n };
+    case 'nota':
+      guardarNota_(String(b.opp || ''), b.nota, b.prox, String(b.fecha || ''), yo.nombre);
+      return { ok: true };
     case 'atendido':
       marcarEvento_(String(b.id || ''), yo.nombre, !!b.deshacer);
       R = radarPara_(yo, false);
@@ -108,7 +111,44 @@ function radarPara_(yo, forzar) {
     });
   });
   R.eventos = eventos_().filter(function (e) { return !e.d && Date.now() - e.at < 48 * 3600000; });
+  R.libreta = libreta_(raw);
   return R;
+}
+
+/* ------------------------------------------------------------------ la Libreta (reemplaza el cuaderno de Mia) */
+function hojaNotas_() {
+  var ss = hoja_().getParent(), h = ss.getSheetByName('notas');
+  if (!h) { h = ss.insertSheet('notas'); h.appendRow(['Oportunidad', 'Nota', 'Próximo paso', 'Fecha próximo paso', 'Quién', 'Cuándo']); h.setFrozenRows(1); }
+  return h;
+}
+function leerNotas_() {
+  var h = hojaNotas_(), n = h.getLastRow(), out = {};
+  if (n < 2) return out;
+  h.getRange(2, 1, n - 1, 6).getValues().forEach(function (r) {
+    if (r[0]) out[String(r[0])] = { nota: String(r[1] || ''), prox: String(r[2] || ''), fecha: r[3] ? Utilities.formatDate(new Date(r[3]), 'America/Bogota', 'yyyy-MM-dd') : '',
+                                     quien: String(r[4] || ''), at: r[5] ? new Date(r[5]).getTime() : 0 };
+  });
+  return out;
+}
+function guardarNota_(opp, nota, prox, fecha, quien) {
+  if (!opp) throw new Error('Falta la oportunidad');
+  var lock = LockService.getScriptLock(); lock.waitLock(10000);
+  try {
+    var h = hojaNotas_(), n = h.getLastRow(), fila = 0;
+    if (n >= 2) { var ids = h.getRange(2, 1, n - 1, 1).getValues(); for (var i = 0; i < ids.length; i++) if (String(ids[i][0]) === opp) { fila = i + 2; break; } }
+    var v = [[opp, String(nota || '').slice(0, 2000), String(prox || '').slice(0, 300), fecha ? new Date(fecha + 'T12:00:00-05:00') : '', quien, new Date()]];
+    if (fila) h.getRange(fila, 1, 1, 6).setValues(v); else h.appendRow(v[0]);
+  } finally { lock.releaseLock(); }
+}
+function libreta_(raw) {
+  var notas = leerNotas_();
+  return (raw.opps || []).filter(function (o) { return o.status === 'open'; }).map(function (o) {
+    var c = (raw.conv || {})[o.contactId] || {}, tags = (o.tags || []).map(function (t) { return String(t).toLowerCase(); }), nt = notas[o.id] || {};
+    return { opp: o.id, c: o.contactId, n: o.nombre || 'Sin nombre', et: raw.etapas[o.etapa] || '', tipo: tipoEtapa(raw.etapas[o.etapa]),
+             dn: raw.usuarios[o.dueno] || 'Sin dueño', creado: o.creado, cambio: o.cambioEtapa || o.creado, tel: o.tel || '',
+             es: tags.indexOf('es') >= 0, cond: condicionDe_(tags), ult: c.ultimoMsj || 0, dir: c.direccion || '', txt: c.ultimoTexto || '',
+             nota: nt.nota || '', prox: nt.prox || '', fecha: nt.fecha || '', quien: nt.quien || '' };
+  });
 }
 
 var CONDICIONES_ = ['knee', 'hip', 'shoulder', 'back', 'neck', 'ankle', 'hands', 'joint', 'face', 'facial', 'hair', 'sex', 'iv', 'kidney', 'diabetes', 'autoimmune', 'neuro', 'neuropathy'];
