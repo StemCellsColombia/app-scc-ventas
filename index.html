@@ -122,6 +122,7 @@ tr.tot td{font-weight:700}
 .muted{color:var(--muted)}
 .lb-ed td{background:var(--sunk)}
 .lb-form{display:grid;gap:10px;max-width:640px}
+.lb-form .lb-gh{margin:0;font-size:12.5px}
 .lb-form label{display:grid;gap:4px;font-size:13px;color:var(--muted)}
 .lb-form textarea,.lb-form input{font:inherit;font-size:15px;padding:9px 12px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink)}
 .lb-2{display:grid;grid-template-columns:1fr 170px;gap:10px}
@@ -405,6 +406,7 @@ function libreta() {
         '<label>Nota<textarea id="lb-nota" rows="3" placeholder="Lo que hablaron, lo que le preocupa, lo que hay que recordar">' + esc(r.nota) + '</textarea></label>' +
         '<div class="lb-2"><label>Próximo paso<input id="lb-prox" type="text" value="' + esc(r.prox) + '" placeholder="Ej.: llamar para cerrar fechas"></label>' +
         '<label>Fecha<input id="lb-fecha" type="date" value="' + esc(r.fecha) + '"></label></div>' +
+        '<p class="muted lb-gh">Queda en las notas del contacto en GHL, a la vista de todos. El próximo paso con fecha queda como tarea en GHL.</p>' +
         '<div class="lb-acts"><button type="button" class="btn" data-lbsave="' + esc(r.opp) + '">Guardar</button>' +
         (tel ? '<a href="tel:' + esc(tel) + '">' + ICON.tel + 'Llamar</a>' : '') + (wa ? '<a href="' + esc(wa) + '" target="_blank" rel="noopener">' + ICON.wa + 'WhatsApp</a>' : '') +
         '<a href="https://app.gohighlevel.com/v2/location/' + LOC + '/contacts/detail/' + esc(r.c) + '" target="_blank" rel="noopener">' + ICON.ghl + 'GHL</a></div></div></td></tr>';
@@ -529,11 +531,12 @@ document.addEventListener('click', function (e) {
   if (b.hasAttribute('data-probar')) { api('probar').then(function (j) { toast(j.enviados ? 'Aviso enviado: debería sonar ya' : 'No hay aparatos con avisos activos'); }).catch(function (e) { toast(e.message); }); return; }
   if (b.hasAttribute('data-salir')) { salir(); return; }
   if (b.dataset.lbsave) {
-    var opp = b.dataset.lbsave, datos = { opp: opp, nota: $('#lb-nota').value, prox: $('#lb-prox').value, fecha: $('#lb-fecha').value };
-    b.disabled = true; b.textContent = 'Guardando…';
-    api('nota', datos).then(function () {
+    var opp = b.dataset.lbsave, fila = (R.libreta || []).filter(function (r) { return r.opp === opp; })[0] || {};
+    var datos = { opp: opp, c: fila.c || '', nota: $('#lb-nota').value, prox: $('#lb-prox').value, fecha: $('#lb-fecha').value };
+    b.disabled = true; b.textContent = 'Guardando en GHL…';
+    api('nota', datos).then(function (j) {
       (R.libreta || []).forEach(function (r) { if (r.opp === opp) { r.nota = datos.nota; r.prox = datos.prox; r.fecha = datos.fecha; r.quien = YO ? YO.nombre : ''; } });
-      LB.abierta = ''; forzarPintura = true; pintar(); toast('✓ Guardado en la libreta');
+      LB.abierta = ''; forzarPintura = true; pintar(); toast(j.ghl ? '✓ En GHL: ' + j.ghl : '✓ Guardado');
     }).catch(function (er) { b.disabled = false; b.textContent = 'Guardar'; toast('No se guardó: ' + er.message); });
     return;
   }

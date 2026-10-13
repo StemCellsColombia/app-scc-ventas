@@ -83,8 +83,7 @@ function api_(b) {
       var n = push_([yo.correo], 'Avisos activos', 'Así te va a sonar cuando un paciente necesite que lo llames.', APP_.URL, 'prueba');
       return { ok: true, enviados: n };
     case 'nota':
-      guardarNota_(String(b.opp || ''), b.nota, b.prox, String(b.fecha || ''), yo.nombre);
-      return { ok: true };
+      return { ok: true, ghl: guardarNota_(String(b.opp || ''), String(b.c || ''), b.nota, b.prox, String(b.fecha || ''), yo) };
     case 'atendido':
       marcarEvento_(String(b.id || ''), yo.nombre, !!b.deshacer);
       R = radarPara_(yo, false);
@@ -130,15 +129,45 @@ function leerNotas_() {
   });
   return out;
 }
-function guardarNota_(opp, nota, prox, fecha, quien) {
+/* 13-oct (Mia y Alejo): las notas viven en GHL, donde las ve todo el equipo. La hoja solo guarda la última
+   para pintar la Libreta rápido. En GHL: la nota va al contacto y el próximo paso con fecha queda como tarea del dueño. */
+function guardarNota_(opp, contactId, nota, prox, fecha, yo) {
   if (!opp) throw new Error('Falta la oportunidad');
+  nota = String(nota || '').slice(0, 2000); prox = String(prox || '').slice(0, 300);
+  var antes = leerNotas_()[opp] || {};
   var lock = LockService.getScriptLock(); lock.waitLock(10000);
   try {
     var h = hojaNotas_(), n = h.getLastRow(), fila = 0;
     if (n >= 2) { var ids = h.getRange(2, 1, n - 1, 1).getValues(); for (var i = 0; i < ids.length; i++) if (String(ids[i][0]) === opp) { fila = i + 2; break; } }
-    var v = [[opp, String(nota || '').slice(0, 2000), String(prox || '').slice(0, 300), fecha ? new Date(fecha + 'T12:00:00-05:00') : '', quien, new Date()]];
+    var v = [[opp, nota, prox, fecha ? new Date(fecha + 'T12:00:00-05:00') : '', yo.nombre, new Date()]];
     if (fila) h.getRange(fila, 1, 1, 6).setValues(v); else h.appendRow(v[0]);
   } finally { lock.releaseLock(); }
+  return notaGhl_(contactId, nota, prox, fecha, yo, antes);
+}
+
+function notaGhl_(contactId, nota, prox, fecha, yo, antes) {
+  if (!contactId) throw new Error('Se guardó en la app, pero falta el contacto para GHL');
+  var h = { Authorization: 'Bearer ' + token_(), Version: CONFIG.VERSION, Accept: 'application/json' }, hecho = [];
+  var cambioNota = nota && nota !== antes.nota, cambioPaso = prox && (prox !== antes.prox || fecha !== antes.fecha);
+  if (cambioNota || cambioPaso) {
+    var cuerpo = [cambioNota ? nota : '', prox ? 'Próximo paso: ' + prox + (fecha ? ' (' + fecha + ')' : '') : ''].filter(String).join('\n') +
+                 '\n— ' + yo.nombre + ' · app SCC · ' + Utilities.formatDate(new Date(), 'America/Bogota', 'd MMM yyyy h:mm a');
+    var r = UrlFetchApp.fetch(CONFIG.BASE + '/contacts/' + contactId + '/notes', { method: 'post', contentType: 'application/json', headers: h,
+                              muteHttpExceptions: true, payload: JSON.stringify({ body: cuerpo }) });
+    if (r.getResponseCode() >= 300) throw new Error('GHL no guardó la nota (' + r.getResponseCode() + ')');
+    hecho.push('nota');
+  }
+  if (cambioPaso && fecha) {
+    var raw = leerCache_() || {}, usuarios = raw.usuarios || {};
+    var uid = Object.keys(usuarios).filter(function (id) { return yo.ghl.some(function (g) { return norm(usuarios[id]).indexOf(g) === 0; }); })[0];
+    var tarea = { title: prox, body: nota.slice(0, 1000), dueDate: fecha + 'T14:00:00.000Z', completed: false };   // 9:00 am Colombia
+    if (uid) tarea.assignedTo = uid;
+    var t = UrlFetchApp.fetch(CONFIG.BASE + '/contacts/' + contactId + '/tasks', { method: 'post', contentType: 'application/json', headers: h,
+                              muteHttpExceptions: true, payload: JSON.stringify(tarea) });
+    if (t.getResponseCode() >= 300) throw new Error('La nota quedó en GHL, pero la tarea no (' + t.getResponseCode() + ')');
+    hecho.push('tarea');
+  }
+  return hecho.join(' y ');
 }
 function libreta_(raw) {
   var notas = leerNotas_();
