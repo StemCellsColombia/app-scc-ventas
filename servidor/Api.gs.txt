@@ -84,6 +84,8 @@ function api_(b) {
       return { ok: true, enviados: n };
     case 'nota':
       return { ok: true, ghl: guardarNota_(String(b.opp || ''), String(b.c || ''), b.nota, b.prox, String(b.fecha || ''), yo) };
+    case 'tablero':
+      return { ok: true, tablero: tablero_(!!b.forzar) };
     case 'atendido':
       marcarEvento_(String(b.id || ''), yo.nombre, !!b.deshacer);
       R = radarPara_(yo, false);
@@ -112,6 +114,65 @@ function radarPara_(yo, forzar) {
   R.eventos = eventos_().filter(function (e) { return !e.d && Date.now() - e.at < 48 * 3600000; });
   R.libreta = libreta_(raw);
   return R;
+}
+
+/* ------------------------------------------------------------------ TABLERO (14-oct, Mia): pacientes por semana desde el Calendar de info@
+   La Scheduling crea en el calendario principal de info@ eventos "NOMBRE - <qué>" (ver scheduling/index.html, buildEvents).
+   - Tratamiento: Incodol, QUIROFANO, Sueroterapia, Exosomas, Facial, Capilar, CO2, Hyperbaric, VITAL, Vitamin C, Essenza, Meet with Patient Care…
+   - «Listo» = el paciente ya tiene "Transfer - Aeropuerto Llegada" (mandó el vuelo). Si no, «Pendiente».
+   - Se ignoran follow-ups, consultas online, recordatorios internos (⚠️ / 📞) y marcadores tumorales.
+   Devuelve solo nombre, días y tipo de tratamiento; nada de correos, teléfonos ni descripciones. Caché de 10 min. */
+var TB_SEMANAS_ = 8;
+function semanaIso_(ymd) {                                                             // número de semana ISO (lunes a domingo)
+  var d = new Date(ymd + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7) + 3);
+  var y = new Date(Date.UTC(d.getUTCFullYear(), 0, 4));
+  return 1 + Math.round(((d - y) / 86400000 - 3 + ((y.getUTCDay() + 6) % 7)) / 7);
+}
+function tablero_(forzar) {
+  var cache = CacheService.getScriptCache(), k = 'tablero_v1';
+  if (!forzar) { var c = cache.get(k); if (c) return JSON.parse(c); }
+  var TZ = 'America/Bogota', DIA_ = 86400000;
+  var hoy = Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd');
+  var dow = (new Date(hoy + 'T12:00:00Z').getUTCDay() + 6) % 7;                      // 0 = lunes
+  var lunes = new Date(new Date(hoy + 'T00:00:00-05:00').getTime() - dow * DIA_);
+  var fin = new Date(lunes.getTime() + TB_SEMANAS_ * 7 * DIA_);
+  var desde = new Date(lunes.getTime() - 10 * DIA_);                                  // la llegada puede ser antes del lunes
+  var IGNORAR = /follow up|online consultation|cancer markers|revisar|lectura|agendar|aprobaci/i;
+  var CLINICO = /incodol|quirofano|quirófano|sueroterapia|premedicaci|blood detox|exosom|facial|capilar|co2|laser|láser|hyperbaric|vital|vitamin c|essenza|patient care|c[eé]lulas|stem cell|limpieza/i;
+  var P = {};
+  CalendarApp.getDefaultCalendar().getEvents(desde, fin).forEach(function (ev) {
+    var t = String(ev.getTitle() || '').trim();
+    if (!t || /^(⚠|📞)/.test(t) || IGNORAR.test(t)) return;
+    var i = t.indexOf(' - '); if (i < 2) return;
+    var nombre = t.slice(0, i).trim(), resto = t.slice(i + 3), key = norm(nombre);
+    if (!key || nombre.length > 60) return;
+    var p = P[key] = P[key] || { n: nombre, llegada: false, dias: {}, tx: {} };
+    if (/aeropuerto llegada/i.test(resto)) { p.llegada = true; return; }
+    if (!CLINICO.test(resto)) return;
+    var d = Utilities.formatDate(ev.getStartTime(), TZ, 'yyyy-MM-dd');
+    if (ev.getStartTime() < lunes) return;
+    p.dias[d] = 1;
+    p.tx[/quirof/i.test(resto) ? 'Quirófano' : /hyperbaric/i.test(resto) ? 'Hiperbárica' : /facial|capilar|co2|laser|láser|essenza|limpieza/i.test(resto) ? 'Estética'
+         : /exosom/i.test(resto) ? 'Exosomas' : /sueroterapia|premedicaci|detox|vitamin c|vital/i.test(resto) ? 'IV' : 'Otro'] = 1;
+  });
+  var semanas = [];
+  for (var w = 0; w < TB_SEMANAS_; w++) {
+    var ini = new Date(lunes.getTime() + w * 7 * DIA_);
+    var iniTxt = Utilities.formatDate(ini, TZ, 'yyyy-MM-dd');
+    semanas.push({ n: semanaIso_(iniTxt), ini: iniTxt, pac: [] });
+  }
+  Object.keys(P).forEach(function (key) {
+    var p = P[key], dias = Object.keys(p.dias).sort();
+    if (!dias.length) return;                                                          // sin tratamiento en la ventana: no es paciente de estas semanas
+    var w = Math.floor((new Date(dias[0] + 'T12:00:00-05:00').getTime() - lunes.getTime()) / (7 * DIA_));
+    if (w < 0 || w >= TB_SEMANAS_) return;
+    var tx = Object.keys(p.tx); if (tx.length > 1) tx = tx.filter(function (x) { return x !== 'Otro'; });
+    semanas[w].pac.push({ n: p.n, listo: p.llegada, dias: dias, tx: tx });
+  });
+  semanas.forEach(function (s) { s.pac.sort(function (a, b) { return a.dias[0] < b.dias[0] ? -1 : a.dias[0] > b.dias[0] ? 1 : 0; }); });
+  var out = { generado: Date.now(), hoy: hoy, nSemanas: TB_SEMANAS_, semanas: semanas };
+  try { cache.put(k, JSON.stringify(out), 600); } catch (e) {}
+  return out;
 }
 
 /* ------------------------------------------------------------------ la Libreta (reemplaza el cuaderno de Mia) */
