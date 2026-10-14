@@ -2,7 +2,7 @@
   "id": "./",
   "name": "App SCC · Ventas",
   "short_name": "App SCC",
-  "description": "Tu lista del día, el tablero de la oficina y los avisos de ventas de Stem Cells Colombia.",
+  "description": "Tu lista del día, los pendientes del equipo, el tablero de la oficina y los avisos de ventas de Stem Cells Colombia.",
   "lang": "es-CO",
   "dir": "ltr",
   "start_url": "./",
@@ -19,6 +19,7 @@
     { "src": "icono-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ],
   "shortcuts": [
+    { "name": "Pendientes", "short_name": "Pendientes", "url": "./#pendientes", "icons": [{ "src": "icono-192.png", "sizes": "192x192" }] },
     { "name": "Tablero", "short_name": "Tablero", "url": "./#tablero", "icons": [{ "src": "icono-192.png", "sizes": "192x192" }] }
   ]
 }

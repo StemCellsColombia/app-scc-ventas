@@ -6,7 +6,7 @@
    - Íconos y manifest: copia guardada al instante y se refresca por detrás.
    - Nada de otros dominios (Firebase, Apps Script, Google Fonts) pasa por aquí.
    Para forzar que todos los celulares tomen una versión nueva: subir VERSION. */
-var VERSION = 'scc-app-2026-10-14a';
+var VERSION = 'scc-app-2026-10-14b';   // 14-oct b: pestaña Pendientes (tareas y notas del equipo)
 var BASICOS = ['./', 'manifest.webmanifest', 'icono-192.png', 'icono-512.png', 'icono-maskable-512.png', 'apple-touch-icon.png', 'insignia-96.png'];
 
 importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js');

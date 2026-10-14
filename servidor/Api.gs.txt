@@ -4,7 +4,8 @@
    - GHL llama doPost?hook=<HOOK_CLAVE>&tipo=<tipo> desde la acción Webhook de cada workflow: se avisa al dueño del lead.
    - Los avisos salen por Firebase Cloud Messaging (proyecto app-scc-ventas) con el token OAuth de info@ (dueño del proyecto).
    - Cada 10 min (disparador avisosProgramados) se revisa el Radar: cotizaciones que pasan a "En riesgo" y leads sin primer mensaje.
-   Propiedades del script que usa: GHL_TOKEN (ya estaba), HOOK_CLAVE (la crea instalarApp), FCM_TOKENS y AVISADOS (las maneja el código). */
+   Propiedades del script que usa: GHL_TOKEN (ya estaba), HOOK_CLAVE (la crea instalarApp), FCM_TOKENS y AVISADOS (las maneja el código),
+   PEND_HOJA_ID (14-oct: la hoja de Pendientes; la crea el código la primera vez que alguien abre Pendientes). */
 
 var APP_ = {
   PROYECTO: 'app-scc-ventas',
@@ -90,6 +91,20 @@ function api_(b) {
       marcarEvento_(String(b.id || ''), yo.nombre, !!b.deshacer);
       R = radarPara_(yo, false);
       return { ok: true, yo: R.yo, radar: R };
+    // Pendientes (14-oct): cada escritura devuelve las listas completas para que todos los aparatos queden iguales
+    case 'tareas_listar':
+    case 'notas_listar':
+      return pendientes_(yo, {});
+    case 'tarea_guardar':
+      return pendientes_(yo, { tarea: tareaGuardar_(b.tarea || {}, yo) });
+    case 'tarea_borrar':
+      pendBorrar_('tareas', String(b.id || ''), yo);
+      return pendientes_(yo, {});
+    case 'nota_guardar':
+      return pendientes_(yo, { nota: notaRapidaGuardar_(b.nota || {}, yo) });
+    case 'nota_borrar':
+      pendBorrar_('notas', String(b.id || ''), yo);
+      return pendientes_(yo, {});
     default:
       throw new Error('Acción desconocida');
   }
@@ -247,6 +262,193 @@ function condicionDe_(tags) {
   return '';
 }
 
+/* ------------------------------------------------------------------ PENDIENTES (14-oct, Alejo: el ÚNICO lugar de tareas, notas y TODO del equipo)
+   Hoja propia «App SCC · Pendientes» en el Drive de info@ (la crea el código la primera vez; su ID queda en PEND_HOJA_ID).
+   - Pestaña «tareas» y pestaña «notas»: una fila por tarea/nota. La última columna («Datos», JSON) es la fuente de verdad;
+     las demás columnas son para leer la hoja a ojo. Editar desde la app, no a mano. No cambiar el orden de las columnas.
+   - Notas «Solo yo»: solo las ve y las cambia quien las escribió. Notas «Equipo»: las ve y las edita todo el equipo.
+   - Nada se borra de verdad: borrar = marcarla «borrada» (sigue en la hoja; se recupera quitando "borrada" del JSON).
+     Borra quien la creó o un admin (Alejo, Mia).
+   - El id (t… / n…) lo pone la app desde el celular: si un envío se repite por mala señal, no se duplica nada.
+   - Al asignarle una tarea a otra persona le suena un aviso (de 7 am a 9 pm; de noche no suena).
+   Errores de validación: siempre dicen «no válido», «necesita», «No puedes» o «Solo quien»; la app descarta ese cambio
+   en vez de reintentarlo para siempre. */
+var PEND_ = {
+  PROP: 'PEND_HOJA_ID',
+  TAREAS: ['ID', 'Tarea', 'Para', 'Vence', 'Prioridad', 'Estado', 'Creada por', 'Contacto GHL', 'Actualizada', 'Por', 'Datos'],
+  NOTAS: ['ID', 'Nota', 'De', 'La ve', 'Fijada', 'Actualizada', 'Por', 'Datos'],
+  PRIORIDAD: ['alta', 'media', 'baja'],
+  ESTADO: ['pendiente', 'curso', 'hecho'],
+  COLORES: ['amarillo', 'rosa', 'aqua', 'verde', 'lila'],
+  DIAS_HECHAS: 14                                                       // las hechas se siguen mostrando 14 días
+};
+function equipoNombres_() { return Object.keys(EQUIPO_).map(function (c) { return EQUIPO_[c].nombre; }); }
+var PEND_SS_ = null;                                                    // se abre una sola vez por llamada
+function pendLibro_() {
+  if (PEND_SS_) return PEND_SS_;
+  var p = PropertiesService.getScriptProperties(), id = p.getProperty(PEND_.PROP);
+  if (id) return (PEND_SS_ = SpreadsheetApp.openById(id));              // si no abre, que falle: nunca crear otra hoja encima de la buena
+  var lock = LockService.getScriptLock(); lock.waitLock(20000);
+  try {
+    id = p.getProperty(PEND_.PROP);
+    if (id) return (PEND_SS_ = SpreadsheetApp.openById(id));
+    var ss = SpreadsheetApp.create('App SCC · Pendientes (tareas y notas)');
+    p.setProperty(PEND_.PROP, ss.getId());
+    var h = ss.getSheets()[0]; h.setName('tareas'); h.appendRow(PEND_.TAREAS); h.setFrozenRows(1);
+    var n = ss.insertSheet('notas'); n.appendRow(PEND_.NOTAS); n.setFrozenRows(1);
+    return (PEND_SS_ = ss);
+  } finally { lock.releaseLock(); }
+}
+function pendHoja_(nombre) {                                            // se llama ANTES de tomar el candado de escritura
+  var ss = pendLibro_(), h = ss.getSheetByName(nombre);
+  if (!h) { h = ss.insertSheet(nombre); h.appendRow(nombre === 'tareas' ? PEND_.TAREAS : PEND_.NOTAS); h.setFrozenRows(1); }
+  return h;
+}
+function pendFilas_(h, ncol) {                                          // [{fila, d}] con d = el JSON de la columna «Datos»
+  var n = h.getLastRow(), out = [];
+  if (n < 2) return out;
+  h.getRange(2, 1, n - 1, ncol).getValues().forEach(function (r, i) {
+    var d = null; try { d = JSON.parse(String(r[ncol - 1] || '')); } catch (e) { d = null; }
+    if (d && d.id) out.push({ fila: i + 2, d: d });
+  });
+  return out;
+}
+function limpio_(s, max) { return String(s == null ? '' : s).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '').trim().slice(0, max); }
+function celda_(s) { s = String(s == null ? '' : s); return /^[=+\-@]/.test(s) ? "'" + s : s; }   // texto que empieza con = no se vuelve fórmula
+function filaTarea_(t) {
+  return [t.id, celda_(t.titulo), t.para, t.vence ? new Date(t.vence + 'T12:00:00-05:00') : '', t.prioridad, t.borrada ? 'borrada' : t.estado,
+          t.creadoPor, celda_(t.contacto || ''), new Date(t.cambio), t.cambioPor, JSON.stringify(t)];
+}
+function filaNota_(n) {
+  return [n.id, celda_(n.texto), n.de, n.equipo ? 'Equipo' : 'Solo ' + n.de, n.borrada ? 'borrada' : n.fijada ? 'Sí' : '',
+          new Date(n.cambio), n.cambioPor, JSON.stringify(n)];
+}
+function tareasLeer_() {
+  var lim = Date.now() - PEND_.DIAS_HECHAS * 86400000;
+  return pendFilas_(pendHoja_('tareas'), PEND_.TAREAS.length).map(function (f) { return f.d; })
+    .filter(function (t) { return !t.borrada && !(t.estado === 'hecho' && (t.hecho || t.cambio || 0) < lim); });
+}
+function notasRapidasLeer_(yo) {
+  return pendFilas_(pendHoja_('notas'), PEND_.NOTAS.length).map(function (f) { return f.d; })
+    .filter(function (n) { return !n.borrada && (n.equipo || n.de === yo.nombre); });
+}
+function pendientes_(yo, extra) {
+  var out = { ok: true, yo: { nombre: yo.nombre, admin: yo.admin }, equipo: equipoNombres_(),
+              hoy: Utilities.formatDate(new Date(), 'America/Bogota', 'yyyy-MM-dd'), tareas: tareasLeer_(), notas: notasRapidasLeer_(yo) };
+  Object.keys(extra || {}).forEach(function (k) { out[k] = extra[k]; });
+  return out;
+}
+
+/* Crea o cambia una tarea. Solo se tocan los campos que llegan (así dos personas no se pisan). */
+function tareaGuardar_(t, yo) {
+  var paraOk = equipoNombres_().concat(['Todos']);
+  var id = String(t.id || '');
+  if (!/^t[a-z0-9]{6,24}$/.test(id)) id = 't' + Utilities.getUuid().replace(/-/g, '').slice(0, 12);
+  var h = pendHoja_('tareas'), x = null, f = null, antesPara = null, nueva = false;
+  var lock = LockService.getScriptLock(); lock.waitLock(15000);
+  try {
+    var filas = pendFilas_(h, PEND_.TAREAS.length);
+    for (var i = 0; i < filas.length; i++) if (filas[i].d.id === id) { f = filas[i]; break; }
+    if (f && f.d.borrada) return null;                                  // alguien la borró: no se revive
+    if (f) { x = f.d; antesPara = x.para; }
+    else {
+      if (!('titulo' in t)) return null;                                // cambio a una tarea que no existe: se ignora
+      x = { id: id, titulo: '', nota: '', para: yo.nombre, vence: '', prioridad: 'media', estado: 'pendiente',
+            creadoPor: yo.nombre, creado: Date.now(), contactoId: '', contacto: '' };
+      nueva = true;
+    }
+    if ('titulo' in t) { var s = limpio_(t.titulo, 200); if (!s) throw new Error('La tarea necesita un título'); x.titulo = s; }
+    if ('nota' in t) x.nota = limpio_(t.nota, 2000);
+    if ('para' in t) { if (paraOk.indexOf(t.para) < 0) throw new Error('«Para» no válido'); x.para = t.para; }
+    if ('vence' in t) {
+      var v = String(t.vence || '');
+      if (v && !/^\d{4}-\d{2}-\d{2}$/.test(v)) throw new Error('Fecha no válida');
+      x.vence = v;
+    }
+    if ('prioridad' in t) { if (PEND_.PRIORIDAD.indexOf(t.prioridad) < 0) throw new Error('Prioridad no válida'); x.prioridad = t.prioridad; }
+    if ('estado' in t) {
+      if (PEND_.ESTADO.indexOf(t.estado) < 0) throw new Error('Estado no válido');
+      if (t.estado === 'hecho' && x.estado !== 'hecho') { x.hechoPor = yo.nombre; x.hecho = Date.now(); }
+      if (t.estado !== 'hecho') { delete x.hechoPor; delete x.hecho; }
+      x.estado = t.estado;
+    }
+    if ('contactoId' in t || 'contacto' in t) {
+      var cid = String(t.contactoId || '');
+      x.contactoId = /^[A-Za-z0-9]{6,40}$/.test(cid) ? cid : '';
+      x.contacto = limpio_(t.contacto, 120);
+    }
+    x.cambio = Date.now(); x.cambioPor = yo.nombre;
+    var fila = filaTarea_(x);
+    if (f) h.getRange(f.fila, 1, 1, fila.length).setValues([fila]); else h.appendRow(fila);
+  } finally { lock.releaseLock(); }
+  if ((nueva || antesPara !== x.para) && x.estado !== 'hecho') { try { avisarTarea_(x, yo); } catch (e) { console.warn('Aviso de tarea: ' + e.message); } }
+  return x;
+}
+
+/* Crea o cambia una nota rápida. */
+function notaRapidaGuardar_(n, yo) {
+  var id = String(n.id || '');
+  if (!/^n[a-z0-9]{6,24}$/.test(id)) id = 'n' + Utilities.getUuid().replace(/-/g, '').slice(0, 12);
+  var h = pendHoja_('notas'), x = null, f = null;
+  var lock = LockService.getScriptLock(); lock.waitLock(15000);
+  try {
+    var filas = pendFilas_(h, PEND_.NOTAS.length);
+    for (var i = 0; i < filas.length; i++) if (filas[i].d.id === id) { f = filas[i]; break; }
+    if (f && f.d.borrada) return null;
+    if (f) {
+      x = f.d;
+      if (!x.equipo && x.de !== yo.nombre) throw new Error('No puedes cambiar una nota personal de otra persona');
+    } else {
+      if (!('texto' in n)) return null;
+      var porDefecto = { Alejo: 'aqua', Camilo: 'amarillo', Mia: 'rosa' }[yo.nombre] || 'amarillo';
+      x = { id: id, texto: '', de: yo.nombre, equipo: true, fijada: false, color: porDefecto, creado: Date.now() };
+    }
+    if ('texto' in n) { var s = limpio_(n.texto, 2000); if (!s) throw new Error('La nota necesita texto'); x.texto = s; }
+    if ('equipo' in n && !!n.equipo !== !!x.equipo) {
+      if (x.de !== yo.nombre) throw new Error('Solo quien escribió la nota puede cambiar quién la ve');
+      x.equipo = !!n.equipo;
+    }
+    if ('fijada' in n) x.fijada = !!n.fijada;
+    if ('color' in n) { if (PEND_.COLORES.indexOf(n.color) < 0) throw new Error('Color no válido'); x.color = n.color; }
+    x.cambio = Date.now(); x.cambioPor = yo.nombre;
+    var fila = filaNota_(x);
+    if (f) h.getRange(f.fila, 1, 1, fila.length).setValues([fila]); else h.appendRow(fila);
+  } finally { lock.releaseLock(); }
+  return x;
+}
+
+/* Borrar = marcar «borrada» (la fila se queda en la hoja). */
+function pendBorrar_(hoja, id, yo) {
+  var esTarea = hoja === 'tareas', cols = esTarea ? PEND_.TAREAS.length : PEND_.NOTAS.length;
+  var h = pendHoja_(hoja);
+  var lock = LockService.getScriptLock(); lock.waitLock(15000);
+  try {
+    var filas = pendFilas_(h, cols), f = null;
+    for (var i = 0; i < filas.length; i++) if (filas[i].d.id === id) { f = filas[i]; break; }
+    if (!f || f.d.borrada) return;
+    var d = f.d, autor = esTarea ? d.creadoPor : d.de;
+    if (!esTarea && !d.equipo && autor !== yo.nombre) throw new Error('No puedes borrar una nota personal de otra persona');
+    if (autor !== yo.nombre && !yo.admin) {
+      var pueden = [autor].concat(Object.keys(EQUIPO_).filter(function (c) { return EQUIPO_[c].admin && EQUIPO_[c].nombre !== autor; })
+                                  .map(function (c) { return EQUIPO_[c].nombre; }));
+      throw new Error('No puedes borrar lo que creó ' + autor + ' (solo lo borra ' + pueden.join(' o ') + ')');
+    }
+    d.borrada = Date.now(); d.borradaPor = yo.nombre; d.cambio = Date.now(); d.cambioPor = yo.nombre;
+    var fila = esTarea ? filaTarea_(d) : filaNota_(d);
+    h.getRange(f.fila, 1, 1, fila.length).setValues([fila]);
+  } finally { lock.releaseLock(); }
+}
+
+/* Aviso al celular de quien recibe la tarea (no a quien la creó). De 9 pm a 7 am no suena. */
+function avisarTarea_(t, yo) {
+  var hora = Number(Utilities.formatDate(new Date(), 'America/Bogota', 'H'));
+  if (hora < 7 || hora >= 21) return 0;
+  var dest = Object.keys(EQUIPO_).filter(function (c) { return c !== yo.correo && (t.para === 'Todos' || EQUIPO_[c].nombre === t.para); });
+  if (!dest.length) return 0;
+  var cuando = t.vence ? ' · para el ' + Utilities.formatDate(new Date(t.vence + 'T12:00:00-05:00'), 'America/Bogota', 'd/M') : '';
+  return push_(dest, (t.prioridad === 'alta' ? 'Tarea urgente de ' : 'Tarea nueva de ') + yo.nombre, t.titulo + cuando, APP_.URL + '#pendientes', 'tarea-' + t.id);
+}
+
 /* ------------------------------------------------------------------ señales de GHL (la fila "Ahora" de la app) */
 function eventos_() {
   try { return JSON.parse(PropertiesService.getScriptProperties().getProperty('EVENTOS') || '[]'); } catch (e) { return []; }
@@ -394,9 +596,17 @@ function avisosProgramados() {
   var hoy = Utilities.formatDate(new Date(), 'America/Bogota', 'yyyy-MM-dd');
   if (hora === 8 && props.getProperty('RESUMEN') !== hoy) {
     props.setProperty('RESUMEN', hoy);
+    var tareasHoy = {};                                                 // 14-oct: también las tareas de Pendientes que vencen hoy o están atrasadas
+    try {
+      if (props.getProperty(PEND_.PROP)) tareasLeer_().forEach(function (t) {
+        if (t.estado === 'hecho' || !t.vence || t.vence > hoy) return;
+        (t.para === 'Todos' ? equipoNombres_() : [t.para]).forEach(function (n) { tareasHoy[n] = (tareasHoy[n] || 0) + 1; });
+      });
+    } catch (e) { console.warn('Resumen sin tareas: ' + e.message); }
     Object.keys(EQUIPO_).forEach(function (c) {
       var m = EQUIPO_[c], cuenta = function (s) { return s.items.filter(function (x) { return m.ghl.some(function (g) { return norm(x.dueno).indexOf(g) === 0; }); }).length; };
       var l = R.secciones.map(function (s) { return [s.titulo, cuenta(s)]; }).filter(function (z) { return z[1]; });
+      if (tareasHoy[m.nombre]) l.push(['Tareas para hoy', tareasHoy[m.nombre]]);
       push_([c], 'Buenos días, ' + m.nombre, l.length ? l.map(function (z) { return z[1] + ' ' + z[0].toLowerCase(); }).join(' · ') : 'Hoy no tienes pendientes. A vender.', APP_.URL, 'resumen');
     });
   }
