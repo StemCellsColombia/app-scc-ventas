@@ -511,6 +511,7 @@ function api(accion, datos) {
 /* ------------------------------------------------ estado y pintura */
 var forzarPintura = false;
 var R = null, YO = null, VER = ls('scc_ver') || 'yo', TAB = ls('scc_tab') || '', TB = null, TBERR = '', TBSEL = 0, TBQUIETO = false, ocupado = false, FOCO = /^#c-/.test(location.hash) ? location.hash.slice(3) : '';
+if (TAB === 'marcador') TAB = '';   // 27-oct: el Marcador ya no está en el menú; quien lo dejó abierto vuelve a su pestaña de inicio
 if (location.hash === '#tablero') TAB = 'tablero';   // atajo del ícono instalado (mantener presionado → Tablero)
 if (location.hash === '#pendientes') TAB = 'pendientes';   // atajo del ícono y aviso de «tarea nueva»
 var ICON = {
