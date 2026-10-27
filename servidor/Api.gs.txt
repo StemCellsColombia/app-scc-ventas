@@ -111,7 +111,10 @@ function api_(b) {
 }
 
 function radarPara_(yo, forzar) {
-  var raw = foto_(forzar);
+  // 27-oct: abrir la app ya NO relee GHL (con ~2.000 leads vivos tardaba más de 45 s, la app mostraba «No se pudo actualizar»
+  // y cada apertura gastaba cuota de UrlFetch). Se usa lo último guardado, que el activador de cada hora refresca;
+  // solo «↻ Actualizar» (forzar) lee GHL en el momento.
+  var raw = forzar ? foto_(true) : (leerCache_() || foto_(false));
   raw.registro = leerRegistro_();
   raw.ahora = Date.now();
   var R = armarRadar(raw);

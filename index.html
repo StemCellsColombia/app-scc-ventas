@@ -519,7 +519,9 @@ function api(accion, datos) {
   return u.getIdToken().then(function (tk) {
     var body = Object.assign({ accion: accion, idToken: tk }, datos || {});
     // 14-oct: con señal mala del celular el fetch quedaba colgado para siempre ("no carga"). Ahora corta a los 45 s.
-    var ctl = ('AbortController' in window) ? new AbortController() : null, t = ctl && setTimeout(function () { ctl.abort(); }, 45000);
+    // 27-oct: «↻ Actualizar» relee todo GHL en el servidor (1–2 min): a ese le damos 3 min.
+    var espera = accion === 'radar' && datos && datos.forzar ? 180000 : 45000;
+    var ctl = ('AbortController' in window) ? new AbortController() : null, t = ctl && setTimeout(function () { ctl.abort(); }, espera);
     return fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body), signal: ctl ? ctl.signal : undefined })
       .finally(function () { clearTimeout(t); });
   }).catch(function (e) {
@@ -549,7 +551,7 @@ function mios(items) {
 function cargar(forzar) {
   pdSync();   // Pendientes va por su lado: si GHL o el Radar fallan, las tareas igual cargan
   if (ocupado) return; ocupado = true;
-  $('#act').textContent = 'Actualizando…';
+  $('#act').textContent = forzar ? 'Leyendo GHL… (1–2 min)' : 'Actualizando…';
   if (!TAB) { TAB = FOCO ? 'dia' : (ls('scc_correo') === 'mia@stemcellscolombia.com' ? 'libreta' : 'dia'); marcarTab(); }   // 27-oct: Mia entra a su cuaderno
   if (TAB === 'tablero') cargarTablero(forzar);
   api('radar', { forzar: !!forzar }).then(function (j) { R = j.radar; YO = j.yo; pintar(); })
@@ -1348,8 +1350,9 @@ function escucharPrimerPlano() {
 if (navigator.serviceWorker) navigator.serviceWorker.addEventListener('message', function (ev) {
   if (ev.data && ev.data.tipo === 'abrir') {
     var h = (String(ev.data.link || '').split('#')[1] || '');
-    if (h === 'pendientes') { irPendientes(''); cargar(true); return; }   // aviso de «tarea nueva»
-    FOCO = h.replace('c-', ''); TAB = 'dia'; marcarTab(); cargar(true);
+    // 27-oct: al tocar un aviso no se relee GHL (tardaba 1–2 min); los avisos del momento llegan igual (vienen aparte de la foto de GHL)
+    if (h === 'pendientes') { irPendientes(''); cargar(false); return; }   // aviso de «tarea nueva»
+    FOCO = h.replace('c-', ''); TAB = 'dia'; marcarTab(); cargar(false);
   }
 });
 
