@@ -131,6 +131,25 @@ tr.tot td{font-weight:700}
 .lb-acts{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .lb-acts .btn{background:var(--aqua);color:#06263A;font-size:15px;padding:10px 16px}
 .lb-acts a{display:inline-flex;gap:6px;align-items:center;text-decoration:none;border:1px solid var(--line);border-radius:10px;padding:8px 12px;font-weight:700;font-size:14px;background:var(--card)}
+/* 27-oct: en el celular la Libreta es una lista de tarjetas (en el computador sigue la tabla) */
+@media (max-width:700px){
+  .lb table{min-width:0;font-size:15px}
+  .lb table,.lb tbody{display:block}
+  .lb thead{display:none}
+  .lb tr.lb-row{display:grid;grid-template-columns:1fr auto;gap:5px 10px;padding:12px 14px;border-bottom:1px solid var(--line)}
+  .lb tr.lb-row td{display:block;padding:0;border:0;background:none!important;max-width:none}
+  .lb td.lb-et,.lb td.lb-en{justify-self:end;text-align:right}
+  .lb td.lb-dn,.lb td.lb-en{font-size:13px;color:var(--muted)}
+  .lb td.lb-um,.lb td.lb-px,.lb td.lb-nota{grid-column:1/-1}
+  .lb td.v{display:none}
+  .lb td[data-l]::before{content:attr(data-l) ': ';color:var(--muted);font-size:12.5px;font-weight:700}
+  .lb td small{max-width:none}
+  .lb tr.venc{box-shadow:inset 4px 0 0 var(--call)}
+  .lb tr.venc td:first-child{box-shadow:none}
+  .lb tr.lb-ed,.lb tr.lb-ed td{display:block}
+  .lb tr.lb-ed td{padding:12px 14px}
+  .lb-2{grid-template-columns:1fr}
+}
 .toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(20px);opacity:0;background:var(--navy);color:#fff;border-radius:12px;padding:10px 16px;font-size:15px;transition:all .25s;z-index:20;max-width:90vw}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 .cargando{color:var(--muted);text-align:center;padding:30px 0}
@@ -670,12 +689,13 @@ function libreta() {
     '<div class="tw lb"><table><thead><tr><th>Paciente</th><th>Etapa</th><th>Dueño</th><th>Entró</th><th>Último mensaje</th><th>Próximo paso</th><th>Nota</th></tr></thead><tbody>';
   l.forEach(function (r) {
     var venc = r.fecha && r.fecha <= hoy;
-    h += '<tr class="lb-row' + (venc ? ' venc' : '') + '" data-opp="' + esc(r.opp) + '"><td><b>' + esc(r.n) + '</b><small>' + esc([r.cond, r.es ? 'ES' : 'EN'].filter(String).join(' · ')) + '</small></td>' +
-      '<td><span class="et" style="background:' + (COLOR_ET[r.tipo] || '#5B6D82') + '">' + esc(r.et) + '</span></td>' +
-      '<td>' + esc(r.dn) + '</td><td>' + fechaCorta(r.creado) + '</td>' +
-      '<td>' + (r.ult ? (r.dir === 'inbound' ? '↙ él · ' : '↗ nosotros · ') + 'hace ' + hace2(r.ult) : '—') + (r.txt ? '<small>' + esc(r.txt) + '</small>' : '') + '</td>' +
-      '<td>' + (r.prox ? esc(r.prox) : '<span class="muted">—</span>') + (r.fecha ? '<small class="' + (venc ? 'rojo' : '') + '">' + esc(r.fecha) + '</small>' : '') + '</td>' +
-      '<td class="lb-nota">' + (r.nota ? esc(r.nota) : '<span class="muted">—</span>') + (r.quien ? '<small>' + esc(r.quien) + '</small>' : '') + '</td></tr>';
+    // data-l = rótulo de la celda en el celular (ahí cada fila es una tarjeta); .v = celda vacía, que en el celular no se muestra
+    h += '<tr class="lb-row' + (venc ? ' venc' : '') + '" data-opp="' + esc(r.opp) + '"><td class="lb-pac"><b>' + esc(r.n) + '</b><small>' + esc([r.cond, r.es ? 'ES' : 'EN'].filter(String).join(' · ')) + '</small></td>' +
+      '<td class="lb-et"><span class="et" style="background:' + (COLOR_ET[r.tipo] || '#5B6D82') + '">' + esc(r.et) + '</span></td>' +
+      '<td class="lb-dn" data-l="Dueño">' + esc(r.dn) + '</td><td class="lb-en" data-l="Entró">' + fechaCorta(r.creado) + '</td>' +
+      '<td class="lb-um' + (r.ult ? '' : ' v') + '">' + (r.ult ? (r.dir === 'inbound' ? '↙ él · ' : '↗ nosotros · ') + 'hace ' + hace2(r.ult) : '—') + (r.txt ? '<small>' + esc(r.txt) + '</small>' : '') + '</td>' +
+      '<td class="lb-px' + (r.prox || r.fecha ? '' : ' v') + '" data-l="Próximo paso">' + (r.prox ? esc(r.prox) : '<span class="muted">—</span>') + (r.fecha ? '<small class="' + (venc ? 'rojo' : '') + '">' + esc(r.fecha) + '</small>' : '') + '</td>' +
+      '<td class="lb-nota' + (r.nota ? '' : ' v') + '" data-l="Nota">' + (r.nota ? esc(r.nota) : '<span class="muted">—</span>') + (r.quien ? '<small>' + esc(r.quien) + '</small>' : '') + '</td></tr>';
     if (LB.abierta === r.opp) {
       var tel = String(r.tel || '').replace(/[^\d+]/g, ''), wa = waLink(r.tel, '', r.n, r.es);
       h += '<tr class="lb-ed"><td colspan="7"><div class="lb-form">' +
