@@ -138,7 +138,9 @@ body.en-cuaderno .seg,body.en-cuaderno #counts{display:none}
 .cq-tags{display:grid;gap:4px;justify-items:end}
 .cq-et{font-size:12px;font-weight:700;border-radius:99px;padding:2px 10px;color:#fff;white-space:nowrap}
 .cq-due{font-size:12px;border-radius:99px;padding:1px 9px;border:1px solid currentColor;white-space:nowrap}
-.cq-prox{font-size:15px}
+.cq-prox{font-size:15px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.cq-hecho{flex:none;border:0;border-radius:99px;padding:6px 12px;font-weight:700;font-size:14px;background:var(--ok);color:#06263A}
+.cq-que{margin:0;font-size:16px;color:var(--ok)}
 .cq-prox .f{font-weight:700}
 .cq-prox .f.rojo{color:var(--call)}
 .cq-nota{font-size:14px;color:var(--muted);border-left:3px solid var(--line);padding-left:8px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;white-space:pre-wrap}
@@ -731,7 +733,7 @@ function tarjetaSenal(e) {
 var ORDEN = ['riesgo', 'llamar', 'escribieron', 'entrada', 'hot'];
 
 /* ---- Libreta: la hoja de todos los leads activos (reemplaza el cuaderno) ---- */
-var LB = { q: '', et: '', abierta: '', due: null, mas: {} };   // 29-oct: due = dueño elegido ('' = Todos); mas = cuántos se ven por grupo
+var LB = { q: '', et: '', abierta: '', due: null, mas: {}, hecho: '' };   // hecho = el paciente al que se le acaba de tocar «✓ Hecho»   // 29-oct: due = dueño elegido ('' = Todos); mas = cuántos se ven por grupo
 var COLOR_ET = { entrada: '#6B7C93', frio: '#2F6FD0', tibio: '#B87A12', hot: '#C94A26', cotizacion: '#6A55D0', nutrir: '#2E8C88', cerrado: '#1C7F47', no: '#8A94A3', otra: '#5B6D82' };
 function fechaCorta(ms) { return ms ? new Date(ms).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', timeZone: 'America/Bogota' }) : '—'; }
 function hace2(ms) { if (!ms) return '—'; var m = Math.round((Date.now() - ms) / 60000); return m < 60 ? m + ' min' : m < 2880 ? Math.round(m / 60) + ' h' : Math.round(m / 1440) + ' d'; }
@@ -774,26 +776,31 @@ function lbTarjeta(r, hoy) {
     (tel ? '<div class="cq-num">📱 ' + esc(r.tel) + '</div>' : '') + '</div>' +
     '<div class="cq-tags"><span class="cq-et" style="background:' + (COLOR_ET[r.tipo] || '#5B6D82') + '">' + esc(r.et || 'Sin etapa') + '</span>' +
     '<span class="cq-due" style="color:' + (P_COLOR[r.dn] || '#C3CEDB') + '">' + esc(r.dn) + '</span></div></div>' +
-    (r.prox || r.fecha ? '<div class="cq-prox">➜ ' + esc(r.prox || 'Próximo paso') + (r.fecha ? ' · <span class="f' + (venc ? ' rojo' : '') + '">' + cuandoTxt(r.fecha, hoy) + '</span>' : '') + '</div>' : '') +
+    (r.prox || r.fecha ? '<div class="cq-prox"><span>➜ ' + esc(r.prox || 'Próximo paso') + (r.fecha ? ' · <span class="f' + (venc ? ' rojo' : '') + '">' + cuandoTxt(r.fecha, hoy) + '</span>' : '') + '</span>' +
+      (ab ? '' : '<button type="button" class="cq-hecho" data-lbhecho="' + esc(r.opp) + '">✓ Hecho</button>') + '</div>' : '') +
     (r.nota ? '<div class="cq-nota">' + esc(r.nota) + (r.quien ? ' — ' + esc(r.quien) : '') + '</div>' : '') +
     (r.ult ? '<div class="cq-ult">' + (r.dir === 'inbound' ? '↙ Escribió' : '↗ Le escribimos') + ' hace ' + hace2(r.ult) + (r.txt ? ': ' + esc(r.txt) : '') + '</div>' : '') +
     /* 29-oct-2026: copiar el número para el WhatsApp de Mia (el escritorio), no abrir WhatsApp Web ni el WhatsApp de quien toca */
     '<div class="cq-acts">' + (tel ? '<button type="button" class="cq-wa" data-copiar="' + esc(tel) + '">📋 Copiar número</button>' : '<span class="cq-wa cq-off">Sin número</span>') +
-    (tel ? '<a class="cq-tel" href="tel:' + esc(tel) + '">' + ICON.tel + 'Llamar</a>' : '<span class="cq-tel cq-off">Llamar</span>') +
+    /* 29-oct-2026: se llama desde GHL (número americano), no desde el teléfono personal */
+    (r.c ? '<a class="cq-tel" href="' + 'https://app.gohighlevel.com/v2/location/' + LOC + '/contacts/detail/' + esc(r.c) + '" target="_blank" rel="noopener">📞 Llamar en GHL</a>' : '<span class="cq-tel cq-off">Sin contacto</span>') +
     '<button type="button" class="cq-anot" data-lbab="' + esc(r.opp) + '">' + (ab ? 'Cerrar' : '✎ Anotar') + '</button></div>';
   if (ab) {
     var hayL = R.etapasLista && R.etapasLista.length && R.usuariosLista && R.usuariosLista.length;
-    h += '<div class="cq-form">' +
-      '<label>Nota<textarea id="lb-nota" rows="3" placeholder="Lo que hablaron, lo que le preocupa, lo que hay que recordar">' + esc(r.nota) + '</textarea></label>' +
-      '<div class="cq-2"><label>Próximo paso<input id="lb-prox" type="text" value="' + esc(r.prox) + '" placeholder="Ej.: llamar para cerrar fechas"></label>' +
-      '<label>Fecha<input id="lb-fecha" type="date" value="' + esc(r.fecha) + '"></label></div>' +
+    var hecho = LB.hecho === r.opp, nota0 = hecho ? (r.nota ? r.nota + '\n' : '') + '✓ ' + (r.prox || 'Hecho') + ' (' + fechaCorta(Date.now()) + ')' : r.nota;
+    h += '<div class="cq-form">' + (hecho ? '<p class="cq-que">✓ Listo. <b>¿Qué sigue con ' + esc(primerNombre(r.n)) + '?</b></p>' : '') +
+      '<label>Nota<textarea id="lb-nota" rows="3" placeholder="Lo que hablaron, lo que le preocupa, lo que hay que recordar">' + esc(nota0) + '</textarea></label>' +
+      '<div class="cq-2"><label>Próximo paso<input id="lb-prox" type="text" value="' + esc(hecho ? '' : r.prox) + '" placeholder="Ej.: llamar para cerrar fechas"></label>' +
+      '<label>Fecha<input id="lb-fecha" type="date" value="' + esc(hecho ? '' : r.fecha) + '"></label></div>' +
+      '<div class="cq-rap">' + ['Llamar', 'Escribir por WhatsApp', 'Mandar cotización', 'Pedir MRI', 'Confirmar exámenes', 'Seguimiento'].map(function (p) {
+        return '<button type="button" data-lbp="' + esc(p) + '">' + esc(p) + '</button>'; }).join('') + '</div>' +
       '<div class="cq-rap"><button type="button" data-lbf="0">Hoy</button><button type="button" data-lbf="1">Mañana</button><button type="button" data-lbf="3">En 3 días</button><button type="button" data-lbf="7">En 1 semana</button></div>' +
-      (hayL ? '<div class="cq-2"><label>Etapa<select id="lb-etapa">' + R.etapasLista.map(function (x) { return '<option value="' + esc(x.id) + '"' + (x.id === r.eid ? ' selected' : '') + '>' + esc(x.n) + '</option>'; }).join('') + '</select></label>' +
+      (hayL ? '<div class="cq-2"><label>Etapa<select id="lb-etapa">' + R.etapasLista.map(function (x) { return '<option value="' + esc(x.id) + '"' + (x.id === r.eid ? ' selected' : '') + '>' + esc(x.n) + '</option>'; }).join('') +
+        (R.lostOk ? '<option value="__lost">✖ No interesado (sale del cuaderno)</option>' : '') + '</select></label>' +
         '<label>Dueño<select id="lb-dueno">' + (r.did ? '' : '<option value="" selected>Sin dueño</option>') + R.usuariosLista.map(function (x) { return '<option value="' + esc(x.id) + '"' + (x.id === r.did ? ' selected' : '') + '>' + esc(x.n) + '</option>'; }).join('') + '</select></label></div>' : '') +
       '<button type="button" class="cq-guardar" data-lbsave="' + esc(r.opp) + '">Guardar</button>' +
       '<p class="muted" style="margin:0;font-size:12.5px">Queda en GHL, a la vista de todos: la nota en el contacto' + (hayL ? ', la etapa y el dueño en la oportunidad' : '') + ', y el próximo paso con fecha como tarea.</p>' +
-      '<div class="cq-mas2"><button type="button" data-lbtarea="' + esc(r.opp) + '">＋ Tarea del equipo</button>' +
-      '<a href="https://app.gohighlevel.com/v2/location/' + LOC + '/contacts/detail/' + esc(r.c) + '" target="_blank" rel="noopener">' + ICON.ghl + 'Abrir en GHL</a></div></div>';
+      '<div class="cq-mas2"><button type="button" data-lbtarea="' + esc(r.opp) + '">＋ Tarea del equipo</button></div></div>';
   }
   return h + '</div>';
 }
@@ -1502,7 +1509,9 @@ document.addEventListener('click', function (e) {
   if (b.dataset.lbet !== undefined) { LB.et = b.dataset.lbet; LB.abierta = ''; LB.mas = {}; forzarPintura = true; pintar(); return; }   // Libreta: pestaña de etapa
   /* 29-oct: el cuaderno */
   if (b.dataset.lbdue !== undefined) { LB.due = b.dataset.lbdue; LB.et = ''; LB.abierta = ''; LB.mas = {}; if (!(R && R.yo && R.yo.ghl)) ls('scc_lb_due', LB.due || 'Todos'); forzarPintura = true; pintar(); return; }
-  if (b.dataset.lbab) { LB.abierta = LB.abierta === b.dataset.lbab ? '' : b.dataset.lbab; forzarPintura = true; pintar(); var cq = document.getElementById('cq-' + LB.abierta); if (cq) cq.scrollIntoView({ block: 'nearest' }); return; }
+  if (b.dataset.lbhecho) { LB.abierta = b.dataset.lbhecho; LB.hecho = b.dataset.lbhecho; forzarPintura = true; pintar(); var px = $('#lb-prox'); if (px) px.focus(); return; }
+  if (b.dataset.lbp) { var pp = $('#lb-prox'), pf = $('#lb-fecha'); if (pp) pp.value = b.dataset.lbp; if (pf && !pf.value) pf.value = sumaDias(hoyCol(), 1); return; }
+  if (b.dataset.lbab) { LB.hecho = ''; LB.abierta = LB.abierta === b.dataset.lbab ? '' : b.dataset.lbab; forzarPintura = true; pintar(); var cq = document.getElementById('cq-' + LB.abierta); if (cq) cq.scrollIntoView({ block: 'nearest' }); return; }
   if (b.dataset.lbmas) { LB.mas[b.dataset.lbmas] = (LB.mas[b.dataset.lbmas] || 40) + 40; forzarPintura = true; pintar(); return; }
   if (b.dataset.copiar) {   // 29-oct: número al portapapeles (y si el navegador no deja, queda seleccionado para Ctrl+C)
     var num = b.dataset.copiar, ok = function () { toast('✓ Copiado ' + num + ' · pégalo en el WhatsApp de Mia'); };
@@ -1562,10 +1571,12 @@ document.addEventListener('click', function (e) {
         r.nota = datos.nota; r.prox = datos.prox; r.fecha = datos.fecha; r.quien = YO ? YO.nombre : '';
         var et = datos.etapa && (R.etapasLista || []).filter(function (x) { return x.id === datos.etapa; })[0];
         if (et) { r.eid = et.id; r.et = et.n; r.tipo = et.tipo; }
+        if (datos.etapa === '__lost') { r.et = 'No interesado'; r.tipo = 'no'; }   // Lost en GHL: sale del cuaderno
         var du = datos.dueno && (R.usuariosLista || []).filter(function (x) { return x.id === datos.dueno; })[0];
         if (du) { r.did = du.id; r.dn = du.n; }
       } });
       var sale = (R.libreta || []).some(function (r) { return r.opp === opp && (r.tipo === 'no' || r.tipo === 'cerrado'); });   // 29-oct
+      LB.hecho = '';
       LB.abierta = ''; forzarPintura = true; pintar(); toast((j.ghl ? '✓ En GHL: ' + j.ghl : '✓ Guardado') + (sale ? ' · salió del cuaderno' : ''));
     }).catch(function (er) { b.disabled = false; b.textContent = 'Guardar'; toast('No se guardó: ' + er.message); });
     return;
