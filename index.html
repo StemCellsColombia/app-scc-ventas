@@ -809,7 +809,7 @@ function lbTarjeta(r, hoy) {
         return '<button type="button" data-lbp="' + esc(p) + '">' + esc(p) + '</button>'; }).join('') + '</div>' +
       '<div class="cq-rap"><button type="button" data-lbf="0">Hoy</button><button type="button" data-lbf="1">Mañana</button><button type="button" data-lbf="3">En 3 días</button><button type="button" data-lbf="7">En 1 semana</button></div>' +
       (hayL ? '<div class="cq-2"><label>Etapa<select id="lb-etapa">' + R.etapasLista.map(function (x) { return '<option value="' + esc(x.id) + '"' + (x.id === r.eid ? ' selected' : '') + '>' + esc(x.n) + '</option>'; }).join('') +
-        (R.lostOk ? '<option value="__lost">✖ No interesado (sale del cuaderno)</option>' : '') + '</select></label>' +
+        ''   /* 29-oct-2026 (Alejo): sin «No interesado» (Lost): los que no contestan van a Nutrir, como en GHL */ + '</select></label>' +
         '<label>Dueño<select id="lb-dueno">' + (r.did ? '' : '<option value="" selected>Sin dueño</option>') + R.usuariosLista.map(function (x) { return '<option value="' + esc(x.id) + '"' + (x.id === r.did ? ' selected' : '') + '>' + esc(x.n) + '</option>'; }).join('') + '</select></label></div>' : '') +
       '<button type="button" class="cq-guardar" data-lbsave="' + esc(r.opp) + '">Guardar</button>' +
       '<p class="muted" style="margin:0;font-size:12.5px">Queda en GHL, a la vista de todos: la nota en el contacto' + (hayL ? ', la etapa y el dueño en la oportunidad' : '') + ', y el próximo paso con fecha como tarea.</p>' +
