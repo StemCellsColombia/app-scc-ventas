@@ -105,6 +105,60 @@ tr.tot td{font-weight:700}
 .nav button{border:0;background:transparent;color:var(--muted);border-radius:12px;padding:6px 0;font-size:min(11.5px,2.9vw);letter-spacing:-.015em;min-width:0;display:grid;justify-items:center;gap:2px;position:relative}
 .nav button svg{width:24px;height:24px}
 .nav button[aria-current="page"]{color:#06263A;background:var(--aqua);font-weight:700}
+/* 29-oct-2026: la app = el cuaderno. Sin barra de abajo (lo demás va en «Más»). */
+.nav{display:none!important}
+body.en-cuaderno .seg,body.en-cuaderno #counts{display:none}
+.menu-mas{position:fixed;z-index:30;top:calc(58px + env(safe-area-inset-top));right:max(12px,calc(50% - 368px));background:#0B2039;border:1px solid #2E4C70;border-radius:14px;padding:6px;display:grid;min-width:230px;box-shadow:0 12px 30px rgba(0,0,0,.45)}
+.menu-mas button{border:0;background:transparent;color:#fff;text-align:left;padding:11px 12px;border-radius:10px;font-size:16px;display:flex;gap:8px;align-items:center}
+.menu-mas button:hover,.menu-mas button[aria-current="page"]{background:var(--navy-2)}
+.menu-mas .badge{position:static}
+.cq-top{display:grid;gap:8px}
+.cq-q{width:100%;font:inherit;font-size:16px;padding:11px 14px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+.cq-chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;align-items:center}
+.cq-chips::-webkit-scrollbar{display:none}
+.cq-lbl{flex:none;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-right:2px}
+.cq-chip{flex:none;border:1px solid var(--line);background:transparent;color:#C9D7E6;border-radius:99px;padding:5px 12px;font-size:14px;white-space:nowrap}
+.cq-chip b{margin-left:4px}
+.cq-chip[aria-pressed="true"]{background:var(--aqua);border-color:var(--aqua);color:#06263A;font-weight:700}
+.cq-aviso{background:var(--warn-soft);border-radius:12px;padding:10px 12px;font-size:14px}
+.cq-sec{display:grid;gap:10px}
+.cq-h{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.cq-h h2{font-size:19px}
+.cq-h .n{font-family:var(--f-d);font-weight:700;border-radius:99px;padding:0 9px;font-size:14px;background:var(--sunk)}
+.cq-h .ex{font-size:13px;color:var(--muted)}
+.cq-sec.hoy .n{background:var(--call);color:#fff}
+.cq-sec.sin .n{background:var(--warn);color:#3A2C10}
+.cq-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px 14px;display:grid;gap:8px}
+.cq-sec.hoy .cq-card{border-left:5px solid var(--call)}
+.cq-sec.sin .cq-card{border-left:5px solid var(--warn)}
+.cq-c1{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+.cq-nom{font-weight:700;font-size:17px}
+.cq-cond{font-size:13px;color:var(--muted)}
+.cq-tags{display:grid;gap:4px;justify-items:end}
+.cq-et{font-size:12px;font-weight:700;border-radius:99px;padding:2px 10px;color:#fff;white-space:nowrap}
+.cq-due{font-size:12px;border-radius:99px;padding:1px 9px;border:1px solid currentColor;white-space:nowrap}
+.cq-prox{font-size:15px}
+.cq-prox .f{font-weight:700}
+.cq-prox .f.rojo{color:var(--call)}
+.cq-nota{font-size:14px;color:var(--muted);border-left:3px solid var(--line);padding-left:8px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;white-space:pre-wrap}
+.cq-ult{font-size:12.5px;color:var(--muted)}
+.cq-acts{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.cq-acts a,.cq-acts button{text-align:center;text-decoration:none;border:0;border-radius:12px;padding:10px 6px;font-weight:700;font-size:15px;display:flex;gap:6px;align-items:center;justify-content:center}
+.cq-wa{background:#1F6E43;color:#fff}
+.cq-tel{background:var(--navy-2);color:#fff}
+.cq-anot{background:var(--aqua);color:#06263A}
+.cq-off{opacity:.35;pointer-events:none}
+.cq-form{display:grid;gap:10px;background:var(--sunk);border-radius:12px;padding:12px}
+.cq-form label{display:grid;gap:4px;font-size:13px;color:#C9D7E6}
+.cq-form textarea,.cq-form input,.cq-form select{width:100%;font:inherit;font-size:16px;padding:10px 12px;border-radius:10px;border:1px solid #2E4C70;background:#0B2039;color:#fff}
+.cq-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.cq-rap{display:flex;gap:6px;flex-wrap:wrap}
+.cq-rap button{border:1px solid #2E4C70;background:transparent;color:#C9D7E6;border-radius:99px;padding:3px 10px;font-size:13px}
+.cq-guardar{background:var(--aqua);color:#06263A;border:0;border-radius:12px;padding:12px;font-weight:700;font-size:16px}
+.cq-mas2{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.cq-mas2 a,.cq-mas2 button{display:inline-flex;gap:6px;align-items:center;text-decoration:none;border:1px solid var(--line);border-radius:10px;padding:7px 11px;font-weight:700;font-size:13.5px;background:var(--card);color:var(--ink)}
+.cq-vermas{justify-self:start;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:99px;padding:8px 16px;font-weight:700}
+.cq-vacio{color:var(--muted);font-size:14px;margin:0}
 .lb-ctl{display:flex;gap:8px;flex-wrap:wrap}
 .lb-ctl input,.lb-ctl select{font:inherit;font-size:15px;padding:9px 12px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink)}
 .lb-ctl input{flex:1;min-width:200px}
@@ -422,7 +476,7 @@ main.tab-pendientes{max-width:920px}
         <div class="top-bts">
           <!-- 14-oct: «Avisos» pasó de la barra de abajo a esta campana, para darle su pestaña a Pendientes -->
           <button class="ref bell" id="b-avisos" type="button" data-tab="ajustes" aria-label="Avisos y sesión"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><span class="bell-t">Avisos</span></button>
-          <button class="ref" id="b-ref" type="button" aria-label="Actualizar">↻ Actualizar</button>
+          <button class="ref" id="b-mas" type="button" aria-haspopup="true">Más ▾</button>
         </div>
       </div>
       <div class="row" style="justify-content:flex-start">
@@ -433,7 +487,15 @@ main.tab-pendientes{max-width:920px}
       <div class="counts" id="counts"></div>
     </div>
   </header>
-  <main id="main"><p class="cargando">Cargando tu día…</p></main>
+  <div class="menu-mas" id="menu-mas" hidden>
+    <button type="button" data-tab="libreta">📒 Cuaderno</button>
+    <button type="button" data-tab="dia">⚡ Ahora</button>
+    <button type="button" data-tab="pendientes">✓ Pendientes <span class="badge" id="b-pend2" hidden></span></button>
+    <button type="button" data-tab="tablero">📅 Tablero</button>
+    <button type="button" data-tab="ajustes">🔔 Avisos</button>
+    <button type="button" id="b-ref">↻ Actualizar desde GHL</button>
+  </div>
+  <main id="main"><p class="cargando">Cargando el cuaderno…</p></main>
   <nav class="nav" aria-label="Secciones">
     <div class="nav-in">
       <button type="button" data-tab="dia" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/></svg>Ahora</button>
@@ -534,7 +596,7 @@ function api(accion, datos) {
 
 /* ------------------------------------------------ estado y pintura */
 var forzarPintura = false;
-var R = null, YO = null, VER = ls('scc_ver') || 'yo', TAB = ls('scc_tab') || '', TB = null, TBERR = '', TBSEL = 0, TBQUIETO = false, ocupado = false, FOCO = /^#c-/.test(location.hash) ? location.hash.slice(3) : '';
+var R = null, YO = null, VER = ls('scc_ver') || 'yo', TAB = '',   /* 29-oct-2026: siempre abre en el cuaderno */ TB = null, TBERR = '', TBSEL = 0, TBQUIETO = false, ocupado = false, FOCO = /^#c-/.test(location.hash) ? location.hash.slice(3) : '';
 if (TAB === 'marcador' || TAB === 'hecho') TAB = '';   // 27/28-oct: Marcador y «Hecho hoy» ya no están en el menú; quien los dejó abiertos vuelve a su pestaña de inicio
 if (location.hash === '#tablero') TAB = 'tablero';   // atajo del ícono instalado (mantener presionado → Tablero)
 if (location.hash === '#pendientes') TAB = 'pendientes';   // atajo del ícono y aviso de «tarea nueva»
@@ -552,7 +614,7 @@ function cargar(forzar) {
   pdSync();   // Pendientes va por su lado: si GHL o el Radar fallan, las tareas igual cargan
   if (ocupado) return; ocupado = true;
   $('#act').textContent = forzar ? 'Leyendo GHL… (1–2 min)' : 'Actualizando…';
-  if (!TAB) { TAB = FOCO ? 'dia' : (ls('scc_correo') === 'mia@stemcellscolombia.com' ? 'libreta' : 'dia'); marcarTab(); }   // 27-oct: Mia entra a su cuaderno
+  if (!TAB) { TAB = FOCO ? 'dia' : 'libreta'; marcarTab(); }   // 29-oct: todos entran al cuaderno (un aviso de «En riesgo» abre Ahora)
   if (TAB === 'tablero') cargarTablero(forzar);
   api('radar', { forzar: !!forzar }).then(function (j) { R = j.radar; YO = j.yo; pintar(); })
     .catch(function (e) { $('#act').textContent = 'No se pudo actualizar'; toast(e.message); if (/vencida|acceso/i.test(e.message)) salir(); })
@@ -575,7 +637,7 @@ function pintar() {
   var h = '';
   if (TAB === 'libreta' && !forzarPintura && document.activeElement && document.activeElement.closest && document.activeElement.closest('#main') && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) return;   // no borrar lo que está escribiendo
   forzarPintura = false;
-  $('#main').className = 'tab-' + TAB; document.body.classList.toggle('en-tablero', TAB === 'tablero'); document.body.classList.toggle('en-pend', TAB === 'pendientes');
+  $('#main').className = 'tab-' + TAB; document.body.classList.toggle('en-tablero', TAB === 'tablero'); document.body.classList.toggle('en-pend', TAB === 'pendientes'); document.body.classList.toggle('en-cuaderno', TAB === 'libreta');
   if (TAB === 'tablero') { $('#main').innerHTML = tablero(); animarTablero(); return; }
   if (TAB === 'pendientes') { var cm = camposMain(); $('#main').innerHTML = avisoBanner() + pendientes(); restaurarCampos(cm); return; }   // lo que estaba escribiendo sobrevive a la repintura
   if (TAB === 'dia') h = dia(); else if (TAB === 'libreta') h = libreta(); else if (TAB === 'hecho') h = hecho(); else if (TAB === 'marcador') h = marcador(); else h = ajustes();
@@ -668,14 +730,14 @@ function tarjetaSenal(e) {
 var ORDEN = ['riesgo', 'llamar', 'escribieron', 'entrada', 'hot'];
 
 /* ---- Libreta: la hoja de todos los leads activos (reemplaza el cuaderno) ---- */
-var LB = { q: '', et: '', abierta: '' };
+var LB = { q: '', et: '', abierta: '', due: null, mas: {} };   // 29-oct: due = dueño elegido ('' = Todos); mas = cuántos se ven por grupo
 var COLOR_ET = { entrada: '#6B7C93', frio: '#2F6FD0', tibio: '#B87A12', hot: '#C94A26', cotizacion: '#6A55D0', nutrir: '#2E8C88', cerrado: '#1C7F47', no: '#8A94A3', otra: '#5B6D82' };
 function fechaCorta(ms) { return ms ? new Date(ms).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', timeZone: 'America/Bogota' }) : '—'; }
 function hace2(ms) { if (!ms) return '—'; var m = Math.round((Date.now() - ms) / 60000); return m < 60 ? m + ' min' : m < 2880 ? Math.round(m / 60) + ' h' : Math.round(m / 1440) + ' d'; }
 function filasLibreta(sinEtapa) {
   var q = LB.q.trim().toLowerCase();
   var l = (R.libreta || []).filter(function (r) {
-    if (VER !== 'todos' && R.yo.ghl && r.dn !== R.yo.ghl) return false;
+    if (LB.due && r.dn !== LB.due) return false;   // 29-oct: el chip de dueño (antes «Los míos», que con el nombre de GHL sin encontrar mostraba todo)
     if (LB.et && !sinEtapa && r.et !== LB.et) return false;
     if (q && (r.n + ' ' + r.cond + ' ' + r.nota + ' ' + r.prox + ' ' + r.tel).toLowerCase().indexOf(q) < 0) return false;
     return true;
@@ -688,43 +750,82 @@ function filasLibreta(sinEtapa) {
   });
   return l;
 }
+/* 29-oct-2026 (Alejo + Mia): la app = el cuaderno. Todos los prospectos, claro qué sigue con cada uno.
+   Dueño al abrir: Mia → Todos; los demás → lo suyo (su nombre de GHL). Si GHL no lo reconoce, elige su nombre una vez y queda. */
+function lbDueInicial() {
+  if (LB.due !== null || !R) return;
+  var mio = (R.yo && R.yo.ghl) || '', g = ls('scc_lb_due');
+  if (!mio && g) { LB.due = g === 'Todos' ? '' : g; return; }
+  LB.due = miNombre() === 'Mia' ? '' : mio;
+}
+function cuandoTxt(f, hoy) {
+  if (!f) return '';
+  if (f === hoy) return 'hoy';
+  var d = Math.round((new Date(f + 'T12:00:00Z') - new Date(hoy + 'T12:00:00Z')) / 86400000);
+  return d < 0 ? 'vencido hace ' + (-d) + ' d' : d === 1 ? 'mañana' : 'en ' + d + ' días';
+}
+function lbTarjeta(r, hoy) {
+  var venc = r.fecha && r.fecha <= hoy, tel = String(r.tel || '').replace(/[^\d+]/g, ''), wa = waLink(r.tel, '', r.n, r.es), ab = LB.abierta === r.opp;
+  var h = '<div class="cq-card" id="cq-' + esc(r.opp) + '"><div class="cq-c1"><div><div class="cq-nom">' + esc(r.n) + '</div>' +
+    '<div class="cq-cond">' + esc([r.cond, r.es ? 'ES' : 'EN'].filter(String).join(' · ')) + '</div></div>' +
+    '<div class="cq-tags"><span class="cq-et" style="background:' + (COLOR_ET[r.tipo] || '#5B6D82') + '">' + esc(r.et || 'Sin etapa') + '</span>' +
+    '<span class="cq-due" style="color:' + (P_COLOR[r.dn] || '#C3CEDB') + '">' + esc(r.dn) + '</span></div></div>' +
+    (r.prox || r.fecha ? '<div class="cq-prox">➜ ' + esc(r.prox || 'Próximo paso') + (r.fecha ? ' · <span class="f' + (venc ? ' rojo' : '') + '">' + cuandoTxt(r.fecha, hoy) + '</span>' : '') + '</div>' : '') +
+    (r.nota ? '<div class="cq-nota">' + esc(r.nota) + (r.quien ? ' — ' + esc(r.quien) : '') + '</div>' : '') +
+    (r.ult ? '<div class="cq-ult">' + (r.dir === 'inbound' ? '↙ Escribió' : '↗ Le escribimos') + ' hace ' + hace2(r.ult) + (r.txt ? ': ' + esc(r.txt) : '') + '</div>' : '') +
+    '<div class="cq-acts">' + (wa ? '<a class="cq-wa" href="' + esc(wa) + '" target="_blank" rel="noopener">' + ICON.wa + 'WhatsApp</a>' : '<span class="cq-wa cq-off">WhatsApp</span>') +
+    (tel ? '<a class="cq-tel" href="tel:' + esc(tel) + '">' + ICON.tel + 'Llamar</a>' : '<span class="cq-tel cq-off">Llamar</span>') +
+    '<button type="button" class="cq-anot" data-lbab="' + esc(r.opp) + '">' + (ab ? 'Cerrar' : '✎ Anotar') + '</button></div>';
+  if (ab) {
+    var hayL = R.etapasLista && R.etapasLista.length && R.usuariosLista && R.usuariosLista.length;
+    h += '<div class="cq-form">' +
+      '<label>Nota<textarea id="lb-nota" rows="3" placeholder="Lo que hablaron, lo que le preocupa, lo que hay que recordar">' + esc(r.nota) + '</textarea></label>' +
+      '<div class="cq-2"><label>Próximo paso<input id="lb-prox" type="text" value="' + esc(r.prox) + '" placeholder="Ej.: llamar para cerrar fechas"></label>' +
+      '<label>Fecha<input id="lb-fecha" type="date" value="' + esc(r.fecha) + '"></label></div>' +
+      '<div class="cq-rap"><button type="button" data-lbf="0">Hoy</button><button type="button" data-lbf="1">Mañana</button><button type="button" data-lbf="3">En 3 días</button><button type="button" data-lbf="7">En 1 semana</button></div>' +
+      (hayL ? '<div class="cq-2"><label>Etapa<select id="lb-etapa">' + R.etapasLista.map(function (x) { return '<option value="' + esc(x.id) + '"' + (x.id === r.eid ? ' selected' : '') + '>' + esc(x.n) + '</option>'; }).join('') + '</select></label>' +
+        '<label>Dueño<select id="lb-dueno">' + (r.did ? '' : '<option value="" selected>Sin dueño</option>') + R.usuariosLista.map(function (x) { return '<option value="' + esc(x.id) + '"' + (x.id === r.did ? ' selected' : '') + '>' + esc(x.n) + '</option>'; }).join('') + '</select></label></div>' : '') +
+      '<button type="button" class="cq-guardar" data-lbsave="' + esc(r.opp) + '">Guardar</button>' +
+      '<p class="muted" style="margin:0;font-size:12.5px">Queda en GHL, a la vista de todos: la nota en el contacto' + (hayL ? ', la etapa y el dueño en la oportunidad' : '') + ', y el próximo paso con fecha como tarea.</p>' +
+      '<div class="cq-mas2"><button type="button" data-lbtarea="' + esc(r.opp) + '">＋ Tarea del equipo</button>' +
+      '<a href="https://app.gohighlevel.com/v2/location/' + LOC + '/contacts/detail/' + esc(r.c) + '" target="_blank" rel="noopener">' + ICON.ghl + 'Abrir en GHL</a></div></div>';
+  }
+  return h + '</div>';
+}
 function libreta() {
-  var l = filasLibreta(), hoy = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Bogota' });
-  // 27-oct (cuaderno de Mia): pestañas por etapa con su número, en el orden del pipeline
-  var todas = filasLibreta(true), cuenta = {}, tipoDe = {};
-  todas.forEach(function (r) { cuenta[r.et] = (cuenta[r.et] || 0) + 1; tipoDe[r.et] = r.tipo; });
+  lbDueInicial();
+  var hoy = hoyCol(), l = filasLibreta();
+  var base = (R.libreta || []).filter(function (r) { return !LB.due || r.dn === LB.due; });
+  // chips de dueño: los dueños que hay, con su número (el mío primero), y «Sin dueño» al final
+  var cd = {}; (R.libreta || []).forEach(function (r) { cd[r.dn] = (cd[r.dn] || 0) + 1; });
+  var yo = (R.yo && R.yo.ghl) || '';
+  var duenos = Object.keys(cd).filter(function (d) { return d !== 'Sin dueño'; }).sort(function (a, b) { return (b === yo) - (a === yo) || cd[b] - cd[a]; });
+  if (cd['Sin dueño']) duenos.push('Sin dueño');
+  if (LB.due && !cd[LB.due]) duenos.unshift(LB.due);
+  var chipD = '<div class="cq-chips"><span class="cq-lbl">Dueño</span><button type="button" class="cq-chip" data-lbdue="" aria-pressed="' + (!LB.due) + '">Todos<b>' + (R.libreta || []).length + '</b></button>' +
+    duenos.map(function (d) { return '<button type="button" class="cq-chip" data-lbdue="' + esc(d) + '" aria-pressed="' + (LB.due === d) + '">' + esc(d) + (d === yo ? ' (yo)' : '') + '<b>' + (cd[d] || 0) + '</b></button>'; }).join('') + '</div>';
+  // chips de etapa, en el orden del pipeline
+  var cuenta = {}, tipoDe = {};
+  base.forEach(function (r) { cuenta[r.et] = (cuenta[r.et] || 0) + 1; tipoDe[r.et] = r.tipo; });
   var ORD = ['entrada', 'frio', 'tibio', 'hot', 'cotizacion', 'otra', 'nutrir', 'no', 'cerrado'];
   var ets = Object.keys(cuenta).sort(function (a, b) { return (ORD.indexOf(tipoDe[a]) - ORD.indexOf(tipoDe[b])) || a.localeCompare(b); });
-  if (LB.et && !cuenta[LB.et]) ets.push(LB.et);
-  function pestana(et, txt, n) { return '<button type="button" class="pill2" data-lbet="' + esc(et) + '" aria-pressed="' + (LB.et === et) + '" style="--pc:' + (et ? (ETAPA_COLOR[tipoDe[et]] || '#C3CEDB') : '#FFD166') + '">' + esc(txt) + ' <b>' + n + '</b></button>'; }
-  var h = '<section class="sec"><div class="sec-h"><h2>Libreta</h2><span class="n">' + l.length + '</span><span>Toca un paciente para escribir la nota y el próximo paso.</span></div>' +
-    '<div class="lb-ets">' + pestana('', 'Todas', todas.length) + ets.map(function (et) { return pestana(et, et, cuenta[et] || 0); }).join('') + '</div>' +
-    '<div class="lb-ctl"><input id="lb-q" type="search" placeholder="Buscar nombre, condición, nota o teléfono" value="' + esc(LB.q) + '"></div>' +
-    '<div class="tw lb"><table><thead><tr><th>Paciente</th><th>Etapa</th><th>Dueño</th><th>Entró</th><th>Último mensaje</th><th>Próximo paso</th><th>Nota</th></tr></thead><tbody>';
-  l.forEach(function (r) {
-    var venc = r.fecha && r.fecha <= hoy;
-    // data-l = rótulo de la celda en el celular (ahí cada fila es una tarjeta); .v = celda vacía, que en el celular no se muestra
-    h += '<tr class="lb-row' + (venc ? ' venc' : '') + '" data-opp="' + esc(r.opp) + '"><td class="lb-pac"><b>' + esc(r.n) + '</b><small>' + esc([r.cond, r.es ? 'ES' : 'EN'].filter(String).join(' · ')) + '</small></td>' +
-      '<td class="lb-et"><span class="et" style="background:' + (COLOR_ET[r.tipo] || '#5B6D82') + '">' + esc(r.et) + '</span></td>' +
-      '<td class="lb-dn" data-l="Dueño">' + esc(r.dn) + '</td><td class="lb-en" data-l="Entró">' + fechaCorta(r.creado) + '</td>' +
-      '<td class="lb-um' + (r.ult ? '' : ' v') + '">' + (r.ult ? (r.dir === 'inbound' ? '↙ él · ' : '↗ nosotros · ') + 'hace ' + hace2(r.ult) : '—') + (r.txt ? '<small>' + esc(r.txt) + '</small>' : '') + '</td>' +
-      '<td class="lb-px' + (r.prox || r.fecha ? '' : ' v') + '" data-l="Próximo paso">' + (r.prox ? esc(r.prox) : '<span class="muted">—</span>') + (r.fecha ? '<small class="' + (venc ? 'rojo' : '') + '">' + esc(r.fecha) + '</small>' : '') + '</td>' +
-      '<td class="lb-nota' + (r.nota ? '' : ' v') + '" data-l="Nota">' + (r.nota ? esc(r.nota) : '<span class="muted">—</span>') + (r.quien ? '<small>' + esc(r.quien) + '</small>' : '') + '</td></tr>';
-    if (LB.abierta === r.opp) {
-      var tel = String(r.tel || '').replace(/[^\d+]/g, ''), wa = waLink(r.tel, '', r.n, r.es);
-      h += '<tr class="lb-ed"><td colspan="7"><div class="lb-form">' +
-        '<label>Nota<textarea id="lb-nota" rows="3" placeholder="Lo que hablaron, lo que le preocupa, lo que hay que recordar">' + esc(r.nota) + '</textarea></label>' +
-        '<div class="lb-2"><label>Próximo paso<input id="lb-prox" type="text" value="' + esc(r.prox) + '" placeholder="Ej.: llamar para cerrar fechas"></label>' +
-        '<label>Fecha<input id="lb-fecha" type="date" value="' + esc(r.fecha) + '"></label></div>' +
-        '<p class="muted lb-gh">Queda en las notas del contacto en GHL, a la vista de todos. El próximo paso con fecha queda como tarea en GHL.</p>' +
-        '<div class="lb-acts"><button type="button" class="btn" data-lbsave="' + esc(r.opp) + '">Guardar</button>' +
-        '<button type="button" class="btn amb" data-lbtarea="' + esc(r.opp) + '">＋ Tarea del equipo</button>' +
-        (tel ? '<a href="tel:' + esc(tel) + '">' + ICON.tel + 'Llamar</a>' : '') + (wa ? '<a href="' + esc(wa) + '" target="_blank" rel="noopener">' + ICON.wa + 'WhatsApp</a>' : '') +
-        '<a href="https://app.gohighlevel.com/v2/location/' + LOC + '/contacts/detail/' + esc(r.c) + '" target="_blank" rel="noopener">' + ICON.ghl + 'GHL</a></div></div></td></tr>';
-    }
-  });
-  if (!l.length) h += '<tr><td colspan="7" class="muted">No hay leads con ese filtro.</td></tr>';
-  return h + '</tbody></table></div></section>';
+  var chipE = '<div class="cq-chips"><span class="cq-lbl">Etapa</span><button type="button" class="cq-chip" data-lbet="" aria-pressed="' + (!LB.et) + '">Todas<b>' + base.length + '</b></button>' +
+    ets.map(function (et) { return '<button type="button" class="cq-chip" data-lbet="' + esc(et) + '" aria-pressed="' + (LB.et === et) + '">' + esc(et || 'Sin etapa') + '<b>' + cuenta[et] + '</b></button>'; }).join('') + '</div>';
+  var aviso = (!yo && miNombre() !== 'Mia' && !ls('scc_lb_due')) ? '<p class="cq-aviso">No te encontré como dueño en GHL: toca tu nombre en «Dueño» y la app lo recuerda.</p>' : '';
+  var g = { hoy: [], sin: [], luego: [] };
+  l.forEach(function (r) { (r.fecha ? (r.fecha <= hoy ? g.hoy : g.luego) : g.sin).push(r); });
+  g.hoy.sort(function (a, b) { return a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : 0; });
+  g.luego.sort(function (a, b) { return a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : 0; });
+  function grupo(k, titulo, ex) {
+    var L = g[k], max = LB.mas[k] || 40;
+    return '<section class="cq-sec ' + k + '"><div class="cq-h"><h2>' + titulo + '</h2><span class="n">' + L.length + '</span><span class="ex">' + ex + '</span></div>' +
+      (L.length ? L.slice(0, max).map(function (r) { return lbTarjeta(r, hoy); }).join('') : '<p class="cq-vacio">Nada aquí.</p>') +
+      (L.length > max ? '<button type="button" class="cq-vermas" data-lbmas="' + k + '">Ver ' + Math.min(40, L.length - max) + ' más (quedan ' + (L.length - max) + ')</button>' : '') + '</section>';
+  }
+  return '<div class="cq-top"><input id="lb-q" class="cq-q" type="search" placeholder="Buscar nombre, condición, nota o teléfono" value="' + esc(LB.q) + '">' + chipD + chipE + aviso + '</div>' +
+    grupo('hoy', 'Para hoy', 'próximo paso de hoy o vencido') +
+    grupo('sin', 'Sin próximo paso', 'que nadie se quede sin seguimiento') +
+    grupo('luego', 'Más adelante', 'ya tienen fecha');
 }
 function dia() {
   var h = pdHoyCard();
@@ -1075,7 +1176,7 @@ function pdAsegurarVisible(t) {   // si la tarea nueva no se vería con el filtr
 function pdBadge() {
   var l = pdDeHoy(true), h = hoyCol(), b = document.getElementById('b-pend');
   var atr = l.some(function (t) { return t.vence < h; });
-  if (b) { b.hidden = !l.length; b.textContent = l.length > 99 ? '99+' : String(l.length); b.classList.toggle('rojo', atr); }
+  [b, document.getElementById('b-pend2')].forEach(function (x) { if (x) { x.hidden = !l.length; x.textContent = l.length > 99 ? '99+' : String(l.length); x.classList.toggle('rojo', atr); } });
   try { var p = l.length ? (navigator.setAppBadge && navigator.setAppBadge(l.length)) : (navigator.clearAppBadge && navigator.clearAppBadge()); if (p && p.catch) p.catch(function () {}); } catch (e) {}
 }
 
@@ -1369,7 +1470,7 @@ if (navigator.serviceWorker) navigator.serviceWorker.addEventListener('message',
 });
 
 /* ------------------------------------------------ clics */
-function marcarTab() { document.querySelectorAll('.nav button, #b-avisos').forEach(function (b) { if (b.dataset.tab === TAB) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); }); }
+function marcarTab() { document.querySelectorAll('.nav button, #b-avisos, #menu-mas button').forEach(function (b) { if (b.dataset.tab === TAB) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); }); }
 function salir() {
   if (!PD.cola.length) ls(pdClave(), null);   // lo que no ha subido se queda en el aparato hasta la próxima entrada
   PD.srv = { tareas: [], notas: [] }; PD.cola = []; PD.listo = false; pdRecalcular(); pdBadge();
@@ -1384,12 +1485,21 @@ document.addEventListener('input', function (e) {
   }, 250);
 });
 document.addEventListener('click', function (e) {
+  /* 29-oct: menú «Más» */
+  var mm = document.getElementById('menu-mas');
+  if (e.target.closest('#b-mas')) { mm.hidden = !mm.hidden; return; }
+  if (mm && !mm.hidden) { mm.hidden = true; if (!e.target.closest('#menu-mas')) return; }
   var fila = e.target.closest('tr.lb-row');
   if (fila && !e.target.closest('a')) { LB.abierta = LB.abierta === fila.dataset.opp ? '' : fila.dataset.opp; forzarPintura = true; pintar(); var t = $('#lb-nota'); if (t) t.focus(); return; }
   var ab = e.target.closest('[data-tkabrir]');
   if (ab && !e.target.closest('a')) { pdAbrir(ab.dataset.tkabrir); return; }
   var b = e.target.closest('button'); if (!b) return;
-  if (b.dataset.lbet !== undefined) { LB.et = b.dataset.lbet; LB.abierta = ''; forzarPintura = true; pintar(); return; }   // Libreta: pestaña de etapa
+  if (b.dataset.lbet !== undefined) { LB.et = b.dataset.lbet; LB.abierta = ''; LB.mas = {}; forzarPintura = true; pintar(); return; }   // Libreta: pestaña de etapa
+  /* 29-oct: el cuaderno */
+  if (b.dataset.lbdue !== undefined) { LB.due = b.dataset.lbdue; LB.et = ''; LB.abierta = ''; LB.mas = {}; if (!(R && R.yo && R.yo.ghl)) ls('scc_lb_due', LB.due || 'Todos'); forzarPintura = true; pintar(); return; }
+  if (b.dataset.lbab) { LB.abierta = LB.abierta === b.dataset.lbab ? '' : b.dataset.lbab; forzarPintura = true; pintar(); var cq = document.getElementById('cq-' + LB.abierta); if (cq) cq.scrollIntoView({ block: 'nearest' }); return; }
+  if (b.dataset.lbmas) { LB.mas[b.dataset.lbmas] = (LB.mas[b.dataset.lbmas] || 40) + 40; forzarPintura = true; pintar(); return; }
+  if (b.dataset.lbf !== undefined) { var fe = $('#lb-fecha'); if (fe) fe.value = sumaDias(hoyCol(), +b.dataset.lbf); return; }
   if (b.dataset.tab) { TAB = b.dataset.tab; ls('scc_tab', TAB); TBQUIETO = false; marcarTab(); pintar(); window.scrollTo(0, 0); if (TAB === 'tablero' && !TB) cargarTablero(false); if (TAB === 'pendientes') pdSync(); return; }
   /* Pendientes */
   if (b.dataset.pdvista) { PD.vista = b.dataset.pdvista; ls('scc_pd_vista', PD.vista); PD.abierta = ''; PD.ntAbierta = ''; pintar(); window.scrollTo(0, 0); return; }
@@ -1431,9 +1541,18 @@ document.addEventListener('click', function (e) {
   if (b.dataset.lbsave) {
     var opp = b.dataset.lbsave, fila = (R.libreta || []).filter(function (r) { return r.opp === opp; })[0] || {};
     var datos = { opp: opp, c: fila.c || '', nota: $('#lb-nota').value, prox: $('#lb-prox').value, fecha: $('#lb-fecha').value };
+    var se = $('#lb-etapa'), sd = $('#lb-dueno');   // 29-oct: etapa y dueño (solo si cambiaron)
+    if (se && se.value && se.value !== fila.eid) datos.etapa = se.value;
+    if (sd && sd.value && sd.value !== fila.did) datos.dueno = sd.value;
     b.disabled = true; b.textContent = 'Guardando en GHL…';
     api('nota', datos).then(function (j) {
-      (R.libreta || []).forEach(function (r) { if (r.opp === opp) { r.nota = datos.nota; r.prox = datos.prox; r.fecha = datos.fecha; r.quien = YO ? YO.nombre : ''; } });
+      (R.libreta || []).forEach(function (r) { if (r.opp === opp) {
+        r.nota = datos.nota; r.prox = datos.prox; r.fecha = datos.fecha; r.quien = YO ? YO.nombre : '';
+        var et = datos.etapa && (R.etapasLista || []).filter(function (x) { return x.id === datos.etapa; })[0];
+        if (et) { r.eid = et.id; r.et = et.n; r.tipo = et.tipo; }
+        var du = datos.dueno && (R.usuariosLista || []).filter(function (x) { return x.id === datos.dueno; })[0];
+        if (du) { r.did = du.id; r.dn = du.n; }
+      } });
       LB.abierta = ''; forzarPintura = true; pintar(); toast(j.ghl ? '✓ En GHL: ' + j.ghl : '✓ Guardado');
     }).catch(function (er) { b.disabled = false; b.textContent = 'Guardar'; toast('No se guardó: ' + er.message); });
     return;
