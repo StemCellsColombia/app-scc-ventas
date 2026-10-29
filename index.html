@@ -134,6 +134,7 @@ body.en-cuaderno .seg,body.en-cuaderno #counts{display:none}
 .cq-c1{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
 .cq-nom{font-weight:700;font-size:17px}
 .cq-cond{font-size:13px;color:var(--muted)}
+.cq-num{font-size:14px;color:#C9D7E6;font-variant-numeric:tabular-nums;user-select:all}
 .cq-tags{display:grid;gap:4px;justify-items:end}
 .cq-et{font-size:12px;font-weight:700;border-radius:99px;padding:2px 10px;color:#fff;white-space:nowrap}
 .cq-due{font-size:12px;border-radius:99px;padding:1px 9px;border:1px solid currentColor;white-space:nowrap}
@@ -767,15 +768,17 @@ function cuandoTxt(f, hoy) {
   return d < 0 ? 'vencido hace ' + (-d) + ' d' : d === 1 ? 'mañana' : 'en ' + d + ' días';
 }
 function lbTarjeta(r, hoy) {
-  var venc = r.fecha && r.fecha <= hoy, tel = String(r.tel || '').replace(/[^\d+]/g, ''), wa = waLink(r.tel, '', r.n, r.es), ab = LB.abierta === r.opp;
+  var venc = r.fecha && r.fecha <= hoy, tel = String(r.tel || '').replace(/[^\d+]/g, ''), ab = LB.abierta === r.opp;
   var h = '<div class="cq-card" id="cq-' + esc(r.opp) + '"><div class="cq-c1"><div><div class="cq-nom">' + esc(r.n) + '</div>' +
-    '<div class="cq-cond">' + esc([r.cond, r.es ? 'ES' : 'EN'].filter(String).join(' · ')) + '</div></div>' +
+    '<div class="cq-cond">' + esc([r.cond, r.es ? 'ES' : 'EN'].filter(String).join(' · ')) + '</div>' +
+    (tel ? '<div class="cq-num">📱 ' + esc(r.tel) + '</div>' : '') + '</div>' +
     '<div class="cq-tags"><span class="cq-et" style="background:' + (COLOR_ET[r.tipo] || '#5B6D82') + '">' + esc(r.et || 'Sin etapa') + '</span>' +
     '<span class="cq-due" style="color:' + (P_COLOR[r.dn] || '#C3CEDB') + '">' + esc(r.dn) + '</span></div></div>' +
     (r.prox || r.fecha ? '<div class="cq-prox">➜ ' + esc(r.prox || 'Próximo paso') + (r.fecha ? ' · <span class="f' + (venc ? ' rojo' : '') + '">' + cuandoTxt(r.fecha, hoy) + '</span>' : '') + '</div>' : '') +
     (r.nota ? '<div class="cq-nota">' + esc(r.nota) + (r.quien ? ' — ' + esc(r.quien) : '') + '</div>' : '') +
     (r.ult ? '<div class="cq-ult">' + (r.dir === 'inbound' ? '↙ Escribió' : '↗ Le escribimos') + ' hace ' + hace2(r.ult) + (r.txt ? ': ' + esc(r.txt) : '') + '</div>' : '') +
-    '<div class="cq-acts">' + (wa ? '<a class="cq-wa" href="' + esc(wa) + '" target="_blank" rel="noopener">' + ICON.wa + 'WhatsApp</a>' : '<span class="cq-wa cq-off">WhatsApp</span>') +
+    /* 29-oct-2026: copiar el número para el WhatsApp de Mia (el escritorio), no abrir WhatsApp Web ni el WhatsApp de quien toca */
+    '<div class="cq-acts">' + (tel ? '<button type="button" class="cq-wa" data-copiar="' + esc(tel) + '">📋 Copiar número</button>' : '<span class="cq-wa cq-off">Sin número</span>') +
     (tel ? '<a class="cq-tel" href="tel:' + esc(tel) + '">' + ICON.tel + 'Llamar</a>' : '<span class="cq-tel cq-off">Llamar</span>') +
     '<button type="button" class="cq-anot" data-lbab="' + esc(r.opp) + '">' + (ab ? 'Cerrar' : '✎ Anotar') + '</button></div>';
   if (ab) {
@@ -1501,6 +1504,13 @@ document.addEventListener('click', function (e) {
   if (b.dataset.lbdue !== undefined) { LB.due = b.dataset.lbdue; LB.et = ''; LB.abierta = ''; LB.mas = {}; if (!(R && R.yo && R.yo.ghl)) ls('scc_lb_due', LB.due || 'Todos'); forzarPintura = true; pintar(); return; }
   if (b.dataset.lbab) { LB.abierta = LB.abierta === b.dataset.lbab ? '' : b.dataset.lbab; forzarPintura = true; pintar(); var cq = document.getElementById('cq-' + LB.abierta); if (cq) cq.scrollIntoView({ block: 'nearest' }); return; }
   if (b.dataset.lbmas) { LB.mas[b.dataset.lbmas] = (LB.mas[b.dataset.lbmas] || 40) + 40; forzarPintura = true; pintar(); return; }
+  if (b.dataset.copiar) {   // 29-oct: número al portapapeles (y si el navegador no deja, queda seleccionado para Ctrl+C)
+    var num = b.dataset.copiar, ok = function () { toast('✓ Copiado ' + num + ' · pégalo en el WhatsApp de Mia'); };
+    var aMano = function () { var t = document.createElement('textarea'); t.value = num; t.style.position = 'fixed'; t.style.opacity = '0'; document.body.appendChild(t); t.select();
+      try { document.execCommand('copy'); ok(); } catch (x) { toast('Copia el número: ' + num); } document.body.removeChild(t); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(num).then(ok, aMano); else aMano();
+    return;
+  }
   if (b.dataset.lbf !== undefined) { var fe = $('#lb-fecha'); if (fe) fe.value = sumaDias(hoyCol(), +b.dataset.lbf); return; }
   if (b.dataset.tab) { TAB = b.dataset.tab; ls('scc_tab', TAB); TBQUIETO = false; marcarTab(); pintar(); window.scrollTo(0, 0); if (TAB === 'tablero' && !TB) cargarTablero(false); if (TAB === 'pendientes') pdSync(); return; }
   /* Pendientes */
