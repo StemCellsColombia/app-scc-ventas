@@ -930,7 +930,7 @@ function ajustes() {
   var inst = instalada ? 'La app está instalada.' : esIOS ? 'En iPhone: Safari → Compartir → «Agregar a inicio». Los avisos solo funcionan desde el ícono.' : 'En Android (Chrome): menú ⋮ → «Instalar app» o «Agregar a la pantalla principal». En el PC: el ícono de instalar en la barra de direcciones.';
   return '<button type="button" class="btn" data-tab="libreta" style="justify-self:start;background:var(--aqua);color:#06263A">← Volver al cuaderno</button>' +
     '<section class="sec"><div class="sec-h"><h2>Avisos</h2></div>' +
-    '<div class="box"><b>' + estado + '</b><span class="c-det">Te suena cuando: entra un lead tuyo, te contesta, abre la cotización, toca un botón, o una cotización pasa 24 h sin llamada. De 9 pm a 7 am no suena nada.</span>' +
+    '<div class="box"><b>' + estado + '</b><span class="c-det">Te suena cuando: entra un lead tuyo, te contesta, abre la cotización, toca un botón, o una cotización pasa 24 h sin llamada. Solo suena de 8 a. m. a 6 p. m.; a las 8 llega el resumen del día.</span>' +
     '<button class="btn" type="button" data-avisos>' + (p === 'granted' ? 'Volver a activar' : 'Activar avisos') + '</button>' +
     '<button class="btn" type="button" data-probar>Mandarme un aviso de prueba</button></div>' +
     '<div class="box"><b>Instalar</b><span class="c-det">' + inst + '</span></div>' +
