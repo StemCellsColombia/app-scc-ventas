@@ -2,24 +2,41 @@
   "id": "./",
   "name": "App SCC · Ventas",
   "short_name": "App SCC",
-  "description": "Tu lista del día, los pendientes del equipo, el tablero de la oficina y los avisos de ventas de Stem Cells Colombia.",
+  "description": "El cuaderno de leads de Stem Cells Colombia: qué sigue con cada lead, y un aviso cuando toca.",
   "lang": "es-CO",
   "dir": "ltr",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "display_override": ["standalone", "minimal-ui"],
+  "display_override": [
+    "standalone",
+    "minimal-ui"
+  ],
   "orientation": "any",
   "background_color": "#0F2A47",
   "theme_color": "#0F2A47",
-  "categories": ["business", "productivity"],
-  "icons": [
-    { "src": "icono-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "icono-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "icono-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  "categories": [
+    "business",
+    "productivity"
   ],
-  "shortcuts": [
-    { "name": "Pendientes", "short_name": "Pendientes", "url": "./#pendientes", "icons": [{ "src": "icono-192.png", "sizes": "192x192" }] },
-    { "name": "Tablero", "short_name": "Tablero", "url": "./#tablero", "icons": [{ "src": "icono-192.png", "sizes": "192x192" }] }
+  "icons": [
+    {
+      "src": "icono-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icono-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icono-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
   ]
 }
