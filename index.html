@@ -113,6 +113,19 @@ body.en-cuaderno .seg,body.en-cuaderno #counts{display:none}
 .menu-mas button:hover,.menu-mas button[aria-current="page"]{background:var(--navy-2)}
 .menu-mas .badge{position:static}
 .cq-top{display:grid;gap:8px}
+.cq-seg{display:grid;grid-template-columns:1fr 1fr;background:#0B2039;border-radius:14px;padding:4px;gap:4px}
+.cq-seg button{border:0;background:transparent;color:#C9D7E6;border-radius:11px;padding:10px 6px;font-weight:700;font-size:15px}
+.cq-seg button b{margin-left:4px;opacity:.8}
+.cq-seg button[aria-pressed="true"]{background:var(--aqua);color:#06263A}
+.cq-fila{display:grid;grid-template-columns:1fr auto;gap:2px 8px;text-align:left;width:100%;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:9px 12px;color:var(--ink)}
+.cq-fila .cq-f1{font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cq-fila .cq-f1 small{color:var(--muted);font-weight:400}
+.cq-fila .cq-due{align-self:start}
+.cq-fila .cq-f2{grid-column:1 / -1;font-size:13px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cq-fila .rojo{color:var(--call);font-weight:700}
+.cq-sec.todos{gap:6px}
+.cq-gr{display:flex;gap:8px;align-items:center;margin-top:8px}
+.cq-resto{border:1px dashed var(--line);background:transparent;color:#C9D7E6;border-radius:12px;padding:12px;font-size:14px;text-align:left}
 .cq-q{width:100%;font:inherit;font-size:16px;padding:11px 14px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
 .cq-chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;align-items:center}
 .cq-chips::-webkit-scrollbar{display:none}
@@ -733,7 +746,7 @@ function tarjetaSenal(e) {
 var ORDEN = ['riesgo', 'llamar', 'escribieron', 'entrada', 'hot'];
 
 /* ---- Libreta: la hoja de todos los leads activos (reemplaza el cuaderno) ---- */
-var LB = { q: '', et: '', abierta: '', due: null, mas: {}, hecho: '' };   // hecho = el paciente al que se le acaba de tocar «✓ Hecho»   // 29-oct: due = dueño elegido ('' = Todos); mas = cuántos se ven por grupo
+var LB = { q: '', et: '', abierta: '', due: null, mas: {}, hecho: '', vista: 'cuaderno' };   // vista: 'cuaderno' (con calma) | 'todos' (vista general)   // hecho = el paciente al que se le acaba de tocar «✓ Hecho»   // 29-oct: due = dueño elegido ('' = Todos); mas = cuántos se ven por grupo
 var COLOR_ET = { entrada: '#6B7C93', frio: '#2F6FD0', tibio: '#B87A12', hot: '#C94A26', cotizacion: '#6A55D0', nutrir: '#2E8C88', cerrado: '#1C7F47', no: '#8A94A3', otra: '#5B6D82' };
 function fechaCorta(ms) { return ms ? new Date(ms).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', timeZone: 'America/Bogota' }) : '—'; }
 function hace2(ms) { if (!ms) return '—'; var m = Math.round((Date.now() - ms) / 60000); return m < 60 ? m + ' min' : m < 2880 ? Math.round(m / 60) + ' h' : Math.round(m / 1440) + ' d'; }
@@ -804,9 +817,32 @@ function lbTarjeta(r, hoy) {
   }
   return h + '</div>';
 }
+/* 29-oct-2026: una línea por lead para la vista general (tocar = abrir para anotar). */
+function lbFila(r, hoy) {
+  var venc = r.fecha && r.fecha <= hoy;
+  return '<button type="button" class="cq-fila" data-lbab="' + esc(r.opp) + '"><span class="cq-f1"><b>' + esc(r.n) + '</b>' + (r.cond ? ' <small>' + esc(r.cond) + '</small>' : '') + '</span>' +
+    '<span class="cq-due" style="color:' + (P_COLOR[r.dn] || '#C3CEDB') + '">' + esc(r.dn) + '</span>' +
+    '<span class="cq-f2">' + (r.prox || r.fecha ? '➜ ' + esc(r.prox || 'Próximo paso') + (r.fecha ? ' · <span class="' + (venc ? 'rojo' : '') + '">' + cuandoTxt(r.fecha, hoy) + '</span>' : '') : '<span class="muted">Sin próximo paso</span>') +
+    (r.ult ? ' · ' + (r.dir === 'inbound' ? '↙ escribió' : '↗ le escribimos') + ' hace ' + hace2(r.ult) : '') + '</span></button>';
+}
+function lbLista(l, hoy, esBusqueda) {
+  var ORD = ['hot', 'cotizacion', 'tibio', 'frio', 'entrada', 'otra', 'nutrir'];
+  var L = l.slice().sort(function (a, b) { return (ORD.indexOf(a.tipo) - ORD.indexOf(b.tipo)) || String(a.et).localeCompare(String(b.et)) || ((b.ult || b.cambio) - (a.ult || a.cambio)); });
+  var cnt = {}; L.forEach(function (r) { cnt[r.et] = (cnt[r.et] || 0) + 1; });
+  var max = LB.mas.todos || 100, et = null;
+  var h = '<section class="cq-sec todos"><div class="cq-h"><h2>' + (esBusqueda ? 'Resultados' : 'Todos los activos') + '</h2><span class="n">' + L.length + '</span><span class="ex">' +
+    (esBusqueda ? 'toca uno para anotarlo y ponerle próximo paso' : 'por etapa · toca uno para abrirlo') + '</span></div>';
+  L.slice(0, max).forEach(function (r) {
+    if (r.et !== et) { et = r.et; h += '<div class="cq-gr"><span class="cq-et" style="background:' + (COLOR_ET[r.tipo] || '#5B6D82') + '">' + esc(r.et || 'Sin etapa') + '</span><span class="muted">' + cnt[r.et] + '</span></div>'; }
+    h += LB.abierta === r.opp ? lbTarjeta(r, hoy) : lbFila(r, hoy);
+  });
+  if (!L.length) h += '<p class="cq-vacio">Nada con ese filtro.</p>';
+  if (L.length > max) h += '<button type="button" class="cq-vermas" data-lbmas="todos">Ver ' + Math.min(100, L.length - max) + ' más (quedan ' + (L.length - max) + ')</button>';
+  return h + '</section>';
+}
 function libreta() {
   lbDueInicial();
-  var hoy = hoyCol(), l = filasLibreta();
+  var hoy = hoyCol(), l = filasLibreta(), vista = LB.vista || 'cuaderno', buscando = !!LB.q.trim();
   var base = lbVivos().filter(function (r) { return !LB.due || r.dn === LB.due; });
   // chips de dueño: los dueños que hay, con su número (el mío primero), y «Sin dueño» al final
   var cd = {}; lbVivos().forEach(function (r) { cd[r.dn] = (cd[r.dn] || 0) + 1; });
@@ -816,7 +852,7 @@ function libreta() {
   if (LB.due && !cd[LB.due]) duenos.unshift(LB.due);
   var chipD = '<div class="cq-chips"><span class="cq-lbl">Dueño</span><button type="button" class="cq-chip" data-lbdue="" aria-pressed="' + (!LB.due) + '">Todos<b>' + lbVivos().length + '</b></button>' +
     duenos.map(function (d) { return '<button type="button" class="cq-chip" data-lbdue="' + esc(d) + '" aria-pressed="' + (LB.due === d) + '">' + esc(d) + (d === yo ? ' (yo)' : '') + '<b>' + (cd[d] || 0) + '</b></button>'; }).join('') + '</div>';
-  // chips de etapa, en el orden del pipeline
+  // chips de etapa (solo en la vista general), en el orden del pipeline
   var cuenta = {}, tipoDe = {};
   base.forEach(function (r) { cuenta[r.et] = (cuenta[r.et] || 0) + 1; tipoDe[r.et] = r.tipo; });
   var ORD = ['entrada', 'frio', 'tibio', 'hot', 'cotizacion', 'otra', 'nutrir', 'no', 'cerrado'];
@@ -824,8 +860,18 @@ function libreta() {
   var chipE = '<div class="cq-chips"><span class="cq-lbl">Etapa</span><button type="button" class="cq-chip" data-lbet="" aria-pressed="' + (!LB.et) + '">Todas<b>' + base.length + '</b></button>' +
     ets.map(function (et) { return '<button type="button" class="cq-chip" data-lbet="' + esc(et) + '" aria-pressed="' + (LB.et === et) + '">' + esc(et || 'Sin etapa') + '<b>' + cuenta[et] + '</b></button>'; }).join('') + '</div>';
   var aviso = (!yo && miNombre() !== 'Mia' && !ls('scc_lb_due')) ? '<p class="cq-aviso">No te encontré como dueño en GHL: toca tu nombre en «Dueño» y la app lo recuerda.</p>' : '';
-  var g = { hoy: [], sin: [], luego: [] };
-  l.forEach(function (r) { (r.fecha ? (r.fecha <= hoy ? g.hoy : g.luego) : g.sin).push(r); });
+  var seg = '<div class="cq-seg"><button type="button" data-lbvista="cuaderno" aria-pressed="' + (vista === 'cuaderno') + '">📒 Mi cuaderno</button>' +
+    '<button type="button" data-lbvista="todos" aria-pressed="' + (vista === 'todos') + '">👥 Todos los activos <b>' + base.length + '</b></button></div>';
+  var top = '<div class="cq-top">' + seg + '<input id="lb-q" class="cq-q" type="search" placeholder="' + (vista === 'todos' ? 'Buscar nombre, condición, nota o teléfono' : 'Buscar en todos los activos para agregarlo al cuaderno') + '" value="' + esc(LB.q) + '">' +
+    chipD + (vista === 'todos' ? chipE : '') + aviso + '</div>';
+  if (vista === 'todos' || buscando) return top + lbLista(l, hoy, buscando && vista !== 'todos');
+  // Mi cuaderno: lo que se está siguiendo (con próximo paso) + Hot y cotizaciones sin próximo paso; el resto lo mueve GHL
+  var g = { hoy: [], sin: [], luego: [] }, resto = 0;
+  l.forEach(function (r) {
+    if (r.fecha) (r.fecha <= hoy ? g.hoy : g.luego).push(r);
+    else if (r.tipo === 'hot' || r.tipo === 'cotizacion') g.sin.push(r);
+    else resto++;
+  });
   g.hoy.sort(function (a, b) { return a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : 0; });
   g.luego.sort(function (a, b) { return a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : 0; });
   function grupo(k, titulo, ex) {
@@ -834,10 +880,11 @@ function libreta() {
       (L.length ? L.slice(0, max).map(function (r) { return lbTarjeta(r, hoy); }).join('') : '<p class="cq-vacio">Nada aquí.</p>') +
       (L.length > max ? '<button type="button" class="cq-vermas" data-lbmas="' + k + '">Ver ' + Math.min(40, L.length - max) + ' más (quedan ' + (L.length - max) + ')</button>' : '') + '</section>';
   }
-  return '<div class="cq-top"><input id="lb-q" class="cq-q" type="search" placeholder="Buscar nombre, condición, nota o teléfono" value="' + esc(LB.q) + '">' + chipD + chipE + aviso + '</div>' +
+  return top +
     grupo('hoy', 'Para hoy', 'próximo paso de hoy o vencido') +
-    grupo('sin', 'Sin próximo paso', 'que nadie se quede sin seguimiento') +
-    grupo('luego', 'Más adelante', 'ya tienen fecha');
+    grupo('sin', 'Sin próximo paso', 'Hot y cotizaciones: necesitan seguimiento') +
+    grupo('luego', 'Más adelante', 'ya tienen fecha') +
+    (resto ? '<button type="button" class="cq-resto" data-lbvista="todos">+ ' + resto + ' activos sin seguimiento manual (los mueve GHL) · <b>Ver todos los activos</b></button>' : '');
 }
 function dia() {
   var h = pdHoyCard();
@@ -1512,7 +1559,8 @@ document.addEventListener('click', function (e) {
   if (b.dataset.lbhecho) { LB.abierta = b.dataset.lbhecho; LB.hecho = b.dataset.lbhecho; forzarPintura = true; pintar(); var px = $('#lb-prox'); if (px) px.focus(); return; }
   if (b.dataset.lbp) { var pp = $('#lb-prox'), pf = $('#lb-fecha'); if (pp) pp.value = b.dataset.lbp; if (pf && !pf.value) pf.value = sumaDias(hoyCol(), 1); return; }
   if (b.dataset.lbab) { LB.hecho = ''; LB.abierta = LB.abierta === b.dataset.lbab ? '' : b.dataset.lbab; forzarPintura = true; pintar(); var cq = document.getElementById('cq-' + LB.abierta); if (cq) cq.scrollIntoView({ block: 'nearest' }); return; }
-  if (b.dataset.lbmas) { LB.mas[b.dataset.lbmas] = (LB.mas[b.dataset.lbmas] || 40) + 40; forzarPintura = true; pintar(); return; }
+  if (b.dataset.lbmas) { var pasoM = b.dataset.lbmas === 'todos' ? 100 : 40; LB.mas[b.dataset.lbmas] = (LB.mas[b.dataset.lbmas] || pasoM) + pasoM; forzarPintura = true; pintar(); return; }
+  if (b.dataset.lbvista) { LB.vista = b.dataset.lbvista; LB.abierta = ''; LB.hecho = ''; LB.mas = {}; if (LB.vista === 'cuaderno') LB.et = ''; forzarPintura = true; pintar(); window.scrollTo(0, 0); return; }
   if (b.dataset.copiar) {   // 29-oct: número al portapapeles (y si el navegador no deja, queda seleccionado para Ctrl+C)
     var num = b.dataset.copiar, ok = function () { toast('✓ Copiado ' + num + ' · pégalo en el WhatsApp de Mia'); };
     var aMano = function () { var t = document.createElement('textarea'); t.value = num; t.style.position = 'fixed'; t.style.opacity = '0'; document.body.appendChild(t); t.select();
