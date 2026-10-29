@@ -734,9 +734,11 @@ var LB = { q: '', et: '', abierta: '', due: null, mas: {} };   // 29-oct: due = 
 var COLOR_ET = { entrada: '#6B7C93', frio: '#2F6FD0', tibio: '#B87A12', hot: '#C94A26', cotizacion: '#6A55D0', nutrir: '#2E8C88', cerrado: '#1C7F47', no: '#8A94A3', otra: '#5B6D82' };
 function fechaCorta(ms) { return ms ? new Date(ms).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', timeZone: 'America/Bogota' }) : '—'; }
 function hace2(ms) { if (!ms) return '—'; var m = Math.round((Date.now() - ms) / 60000); return m < 60 ? m + ' min' : m < 2880 ? Math.round(m / 60) + ' h' : Math.round(m / 1440) + ' d'; }
+/* 29-oct-2026 (Camilo): "No Interested" y los cerrados no son leads por seguir: fuera del cuaderno y de sus conteos. */
+function lbVivos() { return (R.libreta || []).filter(function (r) { return r.tipo !== 'no' && r.tipo !== 'cerrado'; }); }
 function filasLibreta(sinEtapa) {
   var q = LB.q.trim().toLowerCase();
-  var l = (R.libreta || []).filter(function (r) {
+  var l = lbVivos().filter(function (r) {
     if (LB.due && r.dn !== LB.due) return false;   // 29-oct: el chip de dueño (antes «Los míos», que con el nombre de GHL sin encontrar mostraba todo)
     if (LB.et && !sinEtapa && r.et !== LB.et) return false;
     if (q && (r.n + ' ' + r.cond + ' ' + r.nota + ' ' + r.prox + ' ' + r.tel).toLowerCase().indexOf(q) < 0) return false;
@@ -795,14 +797,14 @@ function lbTarjeta(r, hoy) {
 function libreta() {
   lbDueInicial();
   var hoy = hoyCol(), l = filasLibreta();
-  var base = (R.libreta || []).filter(function (r) { return !LB.due || r.dn === LB.due; });
+  var base = lbVivos().filter(function (r) { return !LB.due || r.dn === LB.due; });
   // chips de dueño: los dueños que hay, con su número (el mío primero), y «Sin dueño» al final
-  var cd = {}; (R.libreta || []).forEach(function (r) { cd[r.dn] = (cd[r.dn] || 0) + 1; });
+  var cd = {}; lbVivos().forEach(function (r) { cd[r.dn] = (cd[r.dn] || 0) + 1; });
   var yo = (R.yo && R.yo.ghl) || '';
   var duenos = Object.keys(cd).filter(function (d) { return d !== 'Sin dueño'; }).sort(function (a, b) { return (b === yo) - (a === yo) || cd[b] - cd[a]; });
   if (cd['Sin dueño']) duenos.push('Sin dueño');
   if (LB.due && !cd[LB.due]) duenos.unshift(LB.due);
-  var chipD = '<div class="cq-chips"><span class="cq-lbl">Dueño</span><button type="button" class="cq-chip" data-lbdue="" aria-pressed="' + (!LB.due) + '">Todos<b>' + (R.libreta || []).length + '</b></button>' +
+  var chipD = '<div class="cq-chips"><span class="cq-lbl">Dueño</span><button type="button" class="cq-chip" data-lbdue="" aria-pressed="' + (!LB.due) + '">Todos<b>' + lbVivos().length + '</b></button>' +
     duenos.map(function (d) { return '<button type="button" class="cq-chip" data-lbdue="' + esc(d) + '" aria-pressed="' + (LB.due === d) + '">' + esc(d) + (d === yo ? ' (yo)' : '') + '<b>' + (cd[d] || 0) + '</b></button>'; }).join('') + '</div>';
   // chips de etapa, en el orden del pipeline
   var cuenta = {}, tipoDe = {};
@@ -1553,7 +1555,8 @@ document.addEventListener('click', function (e) {
         var du = datos.dueno && (R.usuariosLista || []).filter(function (x) { return x.id === datos.dueno; })[0];
         if (du) { r.did = du.id; r.dn = du.n; }
       } });
-      LB.abierta = ''; forzarPintura = true; pintar(); toast(j.ghl ? '✓ En GHL: ' + j.ghl : '✓ Guardado');
+      var sale = (R.libreta || []).some(function (r) { return r.opp === opp && (r.tipo === 'no' || r.tipo === 'cerrado'); });   // 29-oct
+      LB.abierta = ''; forzarPintura = true; pintar(); toast((j.ghl ? '✓ En GHL: ' + j.ghl : '✓ Guardado') + (sale ? ' · salió del cuaderno' : ''));
     }).catch(function (er) { b.disabled = false; b.textContent = 'Guardar'; toast('No se guardó: ' + er.message); });
     return;
   }
